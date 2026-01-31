@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+    <title>Matrimonio di Claudio ed Elena</title>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- FONT PIXEL ART -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <div id="app">
+      <header>
+        <minigame></minigame>
+      </header>
+
+      <section>
+        <h1>{{ dataCerimonia }}</h1>
+        <br />
+        <hr class="section-sep" />
+        <br />
+        <h2>Cerimonia</h2>
+        <a :href="linkCerimonia" target="_blank" rel="noopener noreferrer"
+          >{{ luogoCerimonia }}</a
+        >
+        <p>{{ indirizzoCerimonia }}</p>
+        <p>{{ oraCerimonia }}</p>
+        <br />
+        <hr class="section-sep" />
+        <br />
+        <h2>Ricevimento</h2>
+        <a :href="linkRicevimento" target="_blank" rel="noopener noreferrer"
+          >{{ luogoRicevimento }}</a
+        >
+        <p>{{ indirizzoRicevimento }}</p>
+        <p>{{ oraRicevimento }}</p>
+        <br />
+        <hr class="section-sep" />
+      </section>
+
+      <section>
+        <p>Se volete, potete contribuire alla nostra lista nozze:</p>
+        <p>
+          <a :href="linkLista" target="_blank" rel="noopener noreferrer"
+            >Vai alla lista nozze</a
+          >
+          <br />
+          <br />
+          Codice Lista: {{ codiceLista }}
+          <img
+            src="img/copy2.png"
+            class="copy-icon"
+            @click="copiaCodice"
+            alt="copy"
+          />
+          <br />
+          <br />
+          Password: {{ passwordLista }}
+          <img
+            src="img/copy2.png"
+            class="copy-icon"
+            @click="copiaPassword"
+            alt="copy"
+          />
+        </p>
+        <br />
+        <hr class="section-sep small" />
+        <br />
+        <br />
+        <p>Oppure, un contributo sul nostro conto corrente:</p>
+        <p>
+          {{ iban }}<img
+            src="img/copy2.png"
+            class="copy-icon"
+            @click="copiaIBAN"
+            alt="copy"
+          />
+        </p>
+        <br />
+        <p>Grazie di cuore a tutti! ❤️</p>
+      </section>
+    </div>
+
+    <script src="minigame.js"></script>
+    <script>
+      // Ensure viewport remains at 100% on rotation/resize by re-applying the meta
+      (function ensureViewport() {
+        function setViewport() {
+          try {
+            var m = document.querySelector('meta[name="viewport"]');
+            if (!m) {
+              m = document.createElement("meta");
+              m.name = "viewport";
+              document.head.appendChild(m);
+            }
+            m.content =
+              "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+          } catch (e) {}
+        }
+
+        // Only force viewport + scroll-to-top on orientation change
+        window.addEventListener(
+          "orientationchange",
+          function () {
+            // small delay to let browser complete orientation/layout
+            setTimeout(function () {
+              try {
+                window.scrollTo(0, 0);
+              } catch (e) {}
+              setViewport();
+            }, 120);
+          },
+          { passive: true }
+        );
+
+        // Resize can fire frequently on mobile when the address bar shows/hides.
+        // Ignore small height changes (address bar) and only reapply viewport
+        // when the innerHeight changes significantly.
+        let _lastInnerH = window.innerHeight;
+        window.addEventListener(
+          "resize",
+          function () {
+            const newH = window.innerHeight;
+            if (Math.abs(newH - _lastInnerH) < 120) return; // ignore small changes (address bar)
+            _lastInnerH = newH;
+            setTimeout(setViewport, 120);
+          },
+          { passive: true }
+        );
+
+        // run once on load
+        setViewport();
+      })();
+    </script>
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        data() {
+          return {
+            dataCerimonia: "Domenica 11 Ottobre 2026",
+            luogoCerimonia: "Chiesa di San Sisto",
+            linkCerimonia: "https://maps.app.goo.gl/Vh65xmkwGpjVCPsn8",
+            indirizzoCerimonia: "Piazza Francesco Buonamici 1, Pisa",
+            oraCerimonia: "Ore 10:00",
+            luogoRicevimento: "Valle di Badia",
+            linkRicevimento: "https://maps.app.goo.gl/8kzoFq4XTFYPheQ4A",
+            indirizzoRicevimento: "Via di Badia 24, Buti (PI)",
+            oraRicevimento: "Ore 12:00",
+            linkLista:
+              "https://www.rinascentelistanozze.it/ListaNozze/it/AreaDonatori",
+            codiceLista: "451019888",
+            passwordLista: "ElenaeClaudio16!",
+            iban: "IT60X0542811101000000123456",
+          };
+        },
+        methods: {
+          copiaCodice() {
+            navigator.clipboard
+              .writeText(this.codiceLista)
+              .catch(() => alert("Errore nella copia del Codice Lista"));
+          },
+          copiaPassword() {
+            navigator.clipboard
+              .writeText(this.passwordLista)
+              .catch(() => alert("Errore nella copia della Password Lista"));
+          },
+          copiaIBAN() {
+            navigator.clipboard
+              .writeText(this.iban)
+              .catch(() => alert("Errore nella copia dell'IBAN"));
+          },
+        },
+        components: {
+          Minigame: {
+            template: `<canvas ref="canvas" class="game-canvas" role="img" aria-label="Gioco: minigioco del matrimonio"></canvas>`,
+            mounted() {
+              const canvas = this.$refs.canvas;
+              canvas.width = canvas.clientWidth;
+              canvas.height = canvas.clientHeight;
+              initGame(canvas);
+            },
+          },
+        },
+      }).mount("#app");
+    </script>
+
+    <footer>
+      <div class="footer-content">
+        <p>Claudio & Elena</p>
+        <p>Domenica 11 Ottobre 2026</p>
+
+        <div class="footer-icons">
+          <img src="img/sposo-1.png" alt="" class="pixel-mini" />
+          <img src="img/sposa-1.png" alt="" class="pixel-mini" />
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
