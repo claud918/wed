@@ -22,9 +22,11 @@
     <div id="app">
       <header>
         <minigame></minigame>
+        <h2 class="page-title-mobile">IL MATRIMONIO DI</h2>
+        <h1 class="page-title-mobile">ELENA E CLAUDIO</h1>
       </header>
 
-      <section>
+      <section class="reveal">
         <h1>{{ dataCerimonia }}</h1>
         <br />
         <hr class="section-sep" />
@@ -45,10 +47,9 @@
         <p>{{ indirizzoRicevimento }}</p>
         <p>{{ oraRicevimento }}</p>
         <br />
-        <hr class="section-sep" />
       </section>
 
-      <section>
+      <section class="reveal">
         <p>Se volete, potete contribuire alla nostra lista nozze:</p>
         <p>
           <a :href="linkLista" target="_blank" rel="noopener noreferrer"
@@ -194,14 +195,55 @@
         },
       }).mount("#app");
     </script>
+    <script>
+      // Simple scroll-reveal effect for sections and footer
+      (function () {
+        function initReveal() {
+          var revealEls = document.querySelectorAll(".reveal");
+          if (!revealEls.length) return;
 
-    <footer>
+          function makeVisible(el) {
+            el.classList.add("is-visible");
+          }
+
+          if ("IntersectionObserver" in window) {
+            var observer = new IntersectionObserver(
+              function (entries, obs) {
+                entries.forEach(function (entry) {
+                  if (entry.isIntersecting) {
+                    makeVisible(entry.target);
+                    obs.unobserve(entry.target);
+                  }
+                });
+              },
+              { threshold: 0.18 }
+            );
+
+            revealEls.forEach(function (el) {
+              observer.observe(el);
+            });
+          } else {
+            // Fallback: show all sections without animation on very old browsers
+            revealEls.forEach(makeVisible);
+          }
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", initReveal);
+        } else {
+          initReveal();
+        }
+      })();
+    </script>
+
+    <footer class="reveal">
       <div class="footer-content">
         <p>Claudio & Elena</p>
         <p>Domenica 11 Ottobre 2026</p>
 
         <div class="footer-icons">
           <img src="img/sposo-2.png" alt="" class="pixel-mini" />
+          <img src="img/yes-no.gif" alt="" class="pixel-mid" />
           <img src="img/sposa-2b.png" alt="" class="pixel-mini" />
         </div>
       </div>

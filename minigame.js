@@ -50,11 +50,11 @@ function initGame(canvas) {
   imgBackground.src = "img/background.png";
 
   const rotateHintImage = new Image();
-  rotateHintImage.src = "img/rotate.gif";
+  rotateHintImage.src = "img/rotate2.gif";
 
   // optional rotate GIF (user-provided)
   const imgRotate = new Image();
-  imgRotate.src = "img/rotate.gif";
+  imgRotate.src = "img/rotate2.gif";
   let rotateReady = false;
   imgRotate.onload = () => {
     rotateReady = !!(imgRotate.naturalWidth && imgRotate.naturalHeight);
@@ -65,7 +65,7 @@ function initGame(canvas) {
 
   // DOM overlay for rotate GIF (so the GIF animates — canvas drawImage may show only one frame)
   const overlayImg = document.createElement("img");
-  overlayImg.src = "img/rotate.gif";
+  overlayImg.src = "img/rotate2.gif";
   overlayImg.style.position = "absolute";
   overlayImg.style.zIndex = 9999;
   overlayImg.style.pointerEvents = "none";
@@ -78,7 +78,6 @@ function initGame(canvas) {
 
   // small caption under the GIF
   const overlayCaption = document.createElement("div");
-  overlayCaption.innerText = "Ruota in orizzontale per giocare";
   overlayCaption.style.position = "absolute";
   overlayCaption.style.zIndex = 10000;
   overlayCaption.style.pointerEvents = "none";
@@ -188,8 +187,7 @@ function initGame(canvas) {
     navigator.userAgent
   );
   let orientationOk = true; // true se il dispositivo è in landscape o non mobile
-  // track previous orientation to detect transitions
-  let lastOrientationOk = orientationOk;
+
   // evita che la logica di update riparta automaticamente dopo la rotazione
   let preventAutoResume = false;
   let startLoopActive = false; // (se non presente già)
@@ -722,18 +720,7 @@ function initGame(canvas) {
 
     // Se orientamento non corretto su mobile, mostra overlay per ruotare
     if (!orientationOk) {
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(0, 0, width, height);
 
-      const title = "IL MATRIMONIO DI ELENA E CLAUDIO";
-      ctx.font = `${titleSize}px 'Press Start 2P'`;
-      ctx.textAlign = "center";
-
-      ctx.fillStyle = "rgb(207, 3, 3)";
-      ctx.fillText(title, width / 2 + 2, 30 + titleShadowDistance);
-
-      ctx.fillStyle = "yellow";
-      ctx.fillText(title, width / 2, 30);
 
       // if user provided GIF, show the DOM overlay so it animates
       if (rotateReady) {

@@ -3,15 +3,70 @@ body {
   text-align: center;
   margin: 0;
   padding: 0;
-  background: #3ea043;
-  text-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+  min-height: 100vh;
+  /* Pixel-art sky matching minigame colors */
+  background-color: #3ea043; /* fallback = bottom color of gradient */
+  background-attachment: scroll;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top;
+}
+
+/* Add pixel/noise and stars overlays using pseudo elements */
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+#app {
+  overflow-x: hidden;
+}
+
+body::before {
+  /* subtle star field (sparse pattern for night effect at top) */
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0 0 45vh 0; /* stelle solo nella parte alta */
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(255,255,255,0.95) 0.6px, transparent 0.8px),
+    radial-gradient(circle at 22% 18%, rgba(255,255,255,0.9) 0.8px, transparent 1px),
+    radial-gradient(circle at 45% 6%, rgba(255,255,255,0.92) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 68% 14%, rgba(255,255,255,0.88) 0.7px, transparent 1px),
+    radial-gradient(circle at 85% 10%, rgba(255,255,255,0.9) 0.6px, transparent 0.8px);
+  background-repeat: no-repeat;
+  background-position: center top;
+  opacity: 0.65;
+  mix-blend-mode: screen;
+}
+
+body::after {
+  /* tiny noise / dithering for retro pixel feel */
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'><rect width='4' height='4' fill='none'/><circle cx='1' cy='1' r='0.5' fill='%23ffffff' fill-opacity='0.06'/></svg>");
+  background-repeat: repeat;
+  opacity: 0.6;
+  image-rendering: pixelated;
+}
+
+/* Make sure canvas keeps showing above the sky overlays */
+.game-canvas {
+  position: relative;
+  z-index: 5;
 }
 
 /* Ensure the document fills the viewport so CSS sizing stays consistent */
-html,
+html {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 /* Responsive base font-size: scales all page text without touching the canvas/game */
@@ -19,15 +74,25 @@ html {
   font-size: 16px; /* default desktop size */
 }
 
-/* Applica bordo ai titoli */
-h1,
-h2,
-p,
+/* Applica bordo ai titoli, ombra più leggera in stile bitmap */
+h1 {
+  font-family: "Press Start 2P", monospace;
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+h2 {
+  font-family: "Press Start 2P", monospace;
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+p {
+  font-family: "Press Start 2P", monospace;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.8); /* light shadow for light cards */
+}
+
 a {
   font-family: "Press Start 2P", monospace;
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
-    1px 1px 0 #000, -1px 0px 0 #000, 1px 0px 0 #000, 0px -1px 0 #000,
-    0px 1px 0 #000, 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 @media (max-width: 1024px) {
@@ -40,8 +105,27 @@ a {
   html {
     font-size: 14px;
   }
+  #app {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    box-sizing: border-box;
+  }
+  #app > header {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    width: calc(100% + 2.5rem);
+  }
   section {
-    padding: 1.5rem;
+    padding: 1.5rem 1.25rem;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+  footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
   }
 }
 
@@ -49,8 +133,26 @@ a {
   html {
     font-size: 11px;
   }
+  #app {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+  #app > header {
+    margin-left: -3rem;
+    margin-right: -3rem;
+    width: calc(100% + 6rem);
+  }
   section {
-    padding: 1rem;
+    padding: 1rem 0.875rem;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+  footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
   .copy-icon,
   .pixel-mini {
@@ -61,7 +163,38 @@ a {
 header {
   text-align: center;
   padding: 0;
-  background: #fce4ec;
+  background: transparent;
+}
+
+/* Titolo pagina: visibile solo su mobile in orientamento verticale */
+.page-title-mobile {
+  display: none;
+  margin: 0;
+  padding: 0.5rem 0.75rem 0;
+  font-family: "Press Start 2P", monospace;
+  line-height: 1.6;
+  color:rgb(255, 227, 101);
+  text-shadow: 2px 2px 0 rgba(214, 0, 0, 0.8);
+  text-align: center;
+  word-break: break-word;
+}
+
+header .page-title-mobile.h2,
+header h2.page-title-mobile {
+  font-size: 1.5rem;
+}
+
+header .page-title-mobile.h1,
+header h1.page-title-mobile {
+  font-size: 2rem;
+  padding-top: 0.25rem;
+  padding-bottom: 1rem;
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .page-title-mobile {
+    display: block;
+  }
 }
 
 canvas.game-canvas {
@@ -98,24 +231,52 @@ body.game-fullscreen #app > header {
   background: #3ea043; /* matches ground color */
 }
 
-
-
 section {
-  padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  max-width: 840px;
+  margin: 2.5rem auto;
+  width: 100%;
+  background: rgba(248, 247, 247, 0.6); /* lighter cream/beige matching sky top */
+  border: 4px solid #f5c16c;
+  box-shadow:
+    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8), /* green shadow matching ground */
+    0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Scroll reveal effect for main sections and footer */
+.reveal {
+  opacity: 0;
+  transform: translateY(2rem) scale(0.98);
+  filter: blur(2px);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s ease-out,
+    filter 0.7s ease-out;
+  will-change: opacity, transform, filter;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 
 h1 {
-  color: rgb(255, 255, 255);
+  font-size: 1.7rem;
+  color:rgb(30, 112, 34); 
 }
 
 h2 {
-  color: #cf0303;
+  color:rgb(214, 0, 0);
+   /* red matching minigame title color */
 }
 
 p {
-  color: rgb(255, 255, 255);
+  color:rgb(0, 0, 0);
   line-height: 1.5;
 }
 
@@ -125,15 +286,17 @@ p {
 }
 
 a {
-  color: yellow;
+  color:rgb(30, 112, 34); /* green matching minigame ground */
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 2px;
-  transition: color 0.12s ease, text-decoration-color 0.12s ease;
+  transition:
+    color 0.12s ease,
+    text-decoration-color 0.12s ease;
 }
 
 a:hover {
-  color: rgb(151, 128, 51);
+  color:rgb(135, 141, 53); /* lighter green on hover */
 }
 
 .copy-icon {
@@ -143,7 +306,9 @@ a:hover {
   margin-left: 12px;
   vertical-align: middle;
   image-rendering: pixelated;
-  transition: transform 0.12s ease, filter 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease;
   /* drop-shadow applies shadow to the image content (not the element box) */
   filter: drop-shadow(0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45));
 }
@@ -154,18 +319,18 @@ a:hover {
 
 footer {
   margin-top: 3rem;
-  padding: 2rem 1rem;
-  background: #fce4ec;
-  border-top: 4px solid #d81b60;
+  padding: 2rem 1rem 3rem;
+  background: transparent;
   text-align: center;
   font-family: "Press Start 2P", monospace;
-  color: #d81b60;
+  color: #1a1440; /* dark blue for readability */
+  position: relative;
 }
 
 .footer-content p {
   margin: 0.5rem 0;
-  color: #d81b60;
-  text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.45);
+  color:rgb(255, 255, 255); /* dark blue for readability */
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8); /* light shadow for contrast */
 }
 
 .footer-small {
@@ -182,7 +347,13 @@ footer {
 }
 
 .pixel-mini {
-  width: 32px;
+  width: 48px;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.pixel-mid {
+  width: 64px;
   height: auto;
   image-rendering: pixelated;
 }
@@ -214,14 +385,14 @@ footer {
   margin: 1rem auto;
   max-width: 80%;
   color: white;
-  background-color: #ffffff;
+  background-color: #f5c16c;
   border-radius: 2px;
-  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+  box-shadow: 0.3rem 0.3rem 0 rgba(0, 0, 0, 0.45);
 }
 
 .section-sep.small {
   height: 2px;
   max-width: 50%;
-  background-color: #ffffff;
-  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+  background-color: #f5c16c;
+  box-shadow: 0.3rem 0.3rem 0 rgba(0, 0, 0, 0.45);
 }
