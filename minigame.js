@@ -49,9 +49,6 @@ function initGame(canvas) {
   const imgBackground = new Image();
   imgBackground.src = "img/background.png";
 
-  const rotateHintImage = new Image();
-  rotateHintImage.src = "img/rotate2.gif";
-
   // optional rotate GIF (user-provided)
   const imgRotate = new Image();
   imgRotate.src = "img/rotate2.gif";
@@ -111,7 +108,9 @@ function initGame(canvas) {
     overlayImg.style.width = drawW + "px";
     overlayImg.style.height = drawH + "px";
     const leftPos = Math.round(rect.left + (rect.width - drawW) / 2);
-    const topPos = Math.round(rect.top + (rect.height - drawH) / 2);
+    // Slightly raise the overlay so it doesn't sit too low on tall portrait screens
+    const verticalOffset = Math.round(rect.height * 0.08);
+    const topPos = Math.round(rect.top + (rect.height - drawH) / 2 - verticalOffset);
     overlayImg.style.left = leftPos + "px";
     overlayImg.style.top = topPos + "px";
     // position caption centered below the gif
@@ -649,7 +648,7 @@ function initGame(canvas) {
     } catch (e) {}
 
     // font sizing responsive
-    const titleSize = Math.round(clamp(height * 0.07, 5, 48));
+    const titleSize = Math.round(clamp(height * 0.08, 5, 48));
     const titleShadowDistance = titleSize * 0.15;
     const subtitleSize = Math.round(clamp(height * 0.04, 12, 24));
     const subtitleShadowDistance = subtitleSize * 0.11;
