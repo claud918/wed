@@ -27,6 +27,7 @@
       </header>
 
       <section class="reveal">
+        <h1>{{giornoCerimonia}}</h1>
         <h1>{{ dataCerimonia }}</h1>
         <br />
         <hr class="section-sep" />
@@ -52,7 +53,7 @@
       </section>
 
       <section class="reveal">
-        <p>Se volete, potete contribuire alla nostra lista nozze:</p>
+        <p>Questo il link alla nostra lista nozze, nel caso vogliate contribuire:</p>
         <p>
           <a :href="linkLista" target="_blank" rel="noopener noreferrer"
             >Vai alla lista nozze</a
@@ -80,7 +81,7 @@
         <hr class="section-sep small" />
         <br />
         <br />
-        <p>Oppure, un contributo sul nostro conto corrente:</p>
+        <p>Oppure, se volete, potete contribuire al nostro viaggio di nozze:</p>
         <p>
           {{ iban }}<img
             src="img/copy3.png"
@@ -151,7 +152,8 @@
       createApp({
         data() {
           return {
-            dataCerimonia: "Domenica 11 Ottobre 2026",
+            giornoCerimonia: "Domenica",
+            dataCerimonia: "11 Ottobre 2026",
             luogoCerimonia: "Chiesa di San Sisto",
             linkCerimonia: "https://maps.app.goo.gl/Vh65xmkwGpjVCPsn8",
             indirizzoCerimonia: "Piazza Francesco Buonamici 1, Pisa",
