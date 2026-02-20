@@ -1,21 +1,36 @@
+/* Base styles */
+html {
+  width: 100%;
+  min-height: 100%;
+  font-size: 16px;
+}
+
 body {
   font-family: "Press Start 2P", sans-serif;
   text-align: center;
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  /* Pixel-art sky matching minigame colors */
-  background-color: #3ea043; /* fallback = bottom color of gradient */
+  width: 100%;
+  min-height: 100%;
+  position: relative;
+  overflow-x: hidden;
+  background-color: #3ea043;
   background-attachment: scroll;
   background-repeat: no-repeat;
   background-size: cover;
   background-position: top;
 }
 
-/* Add pixel/noise and stars overlays using pseudo elements */
-body {
-  position: relative;
-  overflow-x: hidden;
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'><rect width='4' height='4' fill='none'/><circle cx='1' cy='1' r='0.5' fill='%23ffffff' fill-opacity='0.06'/></svg>");
+  background-repeat: repeat;
+  opacity: 0.6;
+  image-rendering: pixelated;
 }
 
 #app {
@@ -27,142 +42,80 @@ img {
   height: auto;
 }
 
-
-body::after {
-  /* tiny noise / dithering for retro pixel feel */
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'><rect width='4' height='4' fill='none'/><circle cx='1' cy='1' r='0.5' fill='%23ffffff' fill-opacity='0.06'/></svg>");
-  background-repeat: repeat;
-  opacity: 0.6;
-  image-rendering: pixelated;
-}
-
-/* Make sure canvas keeps showing above the sky overlays */
-.game-canvas {
-  position: relative;
-  z-index: 5;
-}
-
-/* Ensure the document fills the viewport so CSS sizing stays consistent */
-html {
-  width: 100%;
-  min-height: 100%;
-}
-
-body {
-  width: 100%;
-  min-height: 100%;
-}
-
-/* Responsive base font-size: scales all page text without touching the canvas/game */
-html {
-  font-size: 16px; /* default desktop size */
-}
-
-/* Applica bordo ai titoli, ombra più leggera in stile bitmap */
+/* Typography */
 h1 {
   font-family: "Press Start 2P", monospace;
+  font-size: 1.5rem;
+  color: rgb(214, 0, 0);
+  line-height: 1.5;
   text-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.8);
-  padding: -10px
+}
+
+.ceremony-date__day,
+.ceremony-date__full {
+  display: block;
 }
 
 h2 {
   font-family: "Press Start 2P", monospace;
+  font-size: 1.5rem;
+  color: #3ea043;
   text-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.8);
 }
 
 p {
   font-family: "Press Start 2P", monospace;
+  font-size: 1rem;
+  color: #3ea043;
+  line-height: 1.5;
+  text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.8);
+}
+
+.details-value {
+  color: rgb(118, 211, 100);
+}
+
+.copy-feedback {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.8rem;
+  color: rgb(214, 0, 0);
   text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.8);
 }
 
 a {
   font-family: "Press Start 2P", monospace;
+  color: rgb(46, 213, 255);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
   text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.8);
+  transition:
+    color 0.12s ease,
+    text-decoration-color 0.12s ease;
+  line-height: 2;
+
 }
 
-@media (max-width: 1024px) {
-  html {
-    font-size: 15px;
-  }
+a:hover {
+  color: rgb(46, 119, 255);
 }
 
-@media (max-width: 768px) {
-  html {
-    font-size: 14px;
-  }
-  #app {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
-    box-sizing: border-box;
-  }
-  #app > header {
-    margin-left: -1.25rem;
-    margin-right: -1.25rem;
-    width: calc(100% + 2.5rem);
-  }
-  section {
-    padding: 1.5rem 1.25rem;
-    margin-left: 0;
-    margin-right: 0;
-    width: 100%;
-    max-width: none;
-    box-sizing: border-box;
-  }
-  footer {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
-  }
-}
-
-@media (max-width: 480px) {
-  html {
-    font-size: 11px;
-  }
-  #app {
-    padding-left: 3rem;
-    padding-right: 3rem;
-  }
-  #app > header {
-    margin-left: -3rem;
-    margin-right: -3rem;
-    width: calc(100% + 6rem);
-  }
-  section {
-    padding: 1rem 0.875rem;
-    margin-left: 0;
-    margin-right: 0;
-    width: 100%;
-    max-width: none;
-    box-sizing: border-box;
-  }
-  footer {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  .copy-icon,
-  .pixel-mini {
-    width: 28px;
-  }
-}
-
+/* Header */
 header {
   text-align: center;
   padding: 0;
   background: transparent;
 }
 
-/* Titolo pagina: visibile solo su mobile in orientamento verticale */
 .page-title-mobile {
   display: none;
   margin: 0;
   padding: 0.5rem 0.75rem 0;
   font-family: "Press Start 2P", monospace;
   line-height: 1.6;
-  color:rgb(255, 227, 101);
+  color: rgb(255, 221, 69);
   text-shadow: 2px 2px 0 rgba(214, 0, 0, 0.8);
   text-align: center;
   word-break: break-word;
@@ -228,18 +181,24 @@ header h1.page-title-mobile {
   }
 }
 
+/* Canvas */
+.game-canvas {
+  position: relative;
+  z-index: 5;
+}
+
 canvas.game-canvas {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 3 / 1; /* controlla la proporzione del gioco */
+  aspect-ratio: 3 / 1;
   background: linear-gradient(#7bd3ff, #c8faff);
   image-rendering: pixelated;
   margin: 0;
   border: none;
 }
 
-/* Fullscreen game mode on mobile landscape: hide other content and disable scrolling */
+/* Fullscreen game mode */
 body.game-fullscreen {
   overflow: hidden !important;
   height: 100vh;
@@ -259,18 +218,19 @@ body.game-fullscreen #app > header {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #3ea043; /* matches ground color */
+  background: #3ea043;
 }
 
+/* Sections */
 section {
   padding: 2rem 2.5rem;
   max-width: 840px;
   margin: 2.5rem auto;
   width: 100%;
-  background:rgb(255, 255, 255); /* lighter cream/beige matching sky top */
-  border: 4px solid rgb(255, 227, 101);
+  background: rgb(255, 255, 255);
+  border: 4px solid rgb(255, 221, 69);
   box-shadow:
-    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8), /* green shadow matching ground */
+    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
     0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
   border-radius: 0;
   position: relative;
@@ -278,7 +238,7 @@ section {
   box-sizing: border-box;
 }
 
-/* Scroll reveal effect for main sections and footer */
+/* Reveal generico per sezioni */
 .reveal {
   opacity: 0;
   transform: translateY(2rem) scale(0.98);
@@ -296,38 +256,28 @@ section {
   filter: blur(0);
 }
 
-h1 {
-  font-size: 1.7rem;
-  color:rgb(214, 0, 0);
-  line-height: 1.5;
+.section-sep {
+  border: none;
+  height: 3px;
+  margin: 1rem auto;
+  max-width: 80%;
+  color: white;
+  background-color: rgb(255, 221, 69);
+  border-radius: 2px;
+  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
 }
 
-h2 {
-  color: #3ea043;
+.section-sep.small {
+  height: 2px;
+  max-width: 50%;
+  background-color: rgb(255, 221, 69);
+  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
 }
 
-p {
-  color: #3ea043;
-  line-height: 1.5;
-}
-
+/* Components */
 .iban {
   font-weight: bold;
   display: inline-block;
-}
-
-a {
-  color:rgb(20, 221, 30); 
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 2px;
-  transition:
-    color 0.12s ease,
-    text-decoration-color 0.12s ease;
-}
-
-a:hover {
-  color:rgb(0, 97, 5); /* lighter green on hover */
 }
 
 .copy-icon {
@@ -340,7 +290,6 @@ a:hover {
   transition:
     transform 0.12s ease,
     filter 0.12s ease;
-  /* drop-shadow applies shadow to the image content (not the element box) */
   filter: drop-shadow(0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45));
 }
 
@@ -348,20 +297,64 @@ a:hover {
   transform: scale(1.15);
 }
 
+.pixel-mini {
+  width: clamp(28px, 12vw, 48px);
+  image-rendering: pixelated;
+}
+
+.pixel-chiesa {
+  width: clamp(40px, 18vw, 144px);
+  image-rendering: pixelated;
+  display: block;
+  margin: 0.75rem auto;
+}
+
+.pixel-valle {
+  width: clamp(80px, 36vw, 288px);
+  image-rendering: pixelated;
+  display: block;
+  margin: 0.75rem auto;
+}
+
+.pixel-mid {
+  width: clamp(40px, 15vw, 64px);
+  image-rendering: pixelated;
+}
+
+.pixel-heart {
+  width: 24px;
+  height: auto;
+  image-rendering: pixelated;
+  animation: beat 1.2s infinite;
+}
+
+@keyframes beat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Footer */
 footer {
   margin-top: 3rem;
   padding: 2rem 1rem 3rem;
   background: transparent;
   text-align: center;
   font-family: "Press Start 2P", monospace;
-  color: #1a1440; /* dark blue for readability */
+  color: #1a1440;
   position: relative;
 }
 
 .footer-content p {
   margin: 0.5rem 0;
-  color:rgb(255, 255, 255); /* dark blue for readability */
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8); /* light shadow for contrast */
+  color: rgb(255, 255, 255);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
 }
 
 .footer-small {
@@ -378,67 +371,119 @@ footer {
   flex-wrap: wrap;
 }
 
-.pixel-mini {
-  width: clamp(28px, 12vw, 48px);
-  image-rendering: pixelated;
+/* Footer reveal: niente movimento dal basso, solo ingresso laterale degli sposi */
+footer.reveal {
+  opacity: 1;
+  transform: none;
+  filter: none;
 }
 
-.pixel-chiesa {
-  width: clamp(40px, 20vw, 144px);
-  image-rendering: pixelated;
-  display: block;
-  margin: 0.75rem auto;
+footer.reveal.is-visible {
+  opacity: 1;
 }
 
-.pixel-valle {
-  width: clamp(80px, 40vw, 288px);
-  image-rendering: pixelated;
-  display: block;
-  margin: 0.75rem auto;
-}
-
-
-.pixel-mid {
-  width: clamp(40px, 15vw, 64px);
-  image-rendering: pixelated;
-}
-
-
-.pixel-heart {
-  width: 24px;
-  height: auto;
-  image-rendering: pixelated;
-  animation: beat 1.2s infinite;
-}
-
-/* Cuore che pulsa */
-@keyframes beat {
-  0% {
-    transform: scale(1);
+@keyframes footerGroomIn {
+  from {
+    opacity: 1;
+    transform: translateX(-100vw);
   }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-/* Separator lines between sections */
-.section-sep {
-  border: none;
-  height: 3px;
-  margin: 1rem auto;
-  max-width: 80%;
-  color: white;
-  background-color:rgb(255, 227, 101);
-  border-radius: 2px;
-  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+@keyframes footerBrideIn {
+  from {
+    opacity: 1;
+    transform: translateX(100vw);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.section-sep.small {
-  height: 2px;
-  max-width: 50%;
-  background-color:rgb(255, 227, 101);
-  box-shadow: 0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45);
+footer .footer-icons .pixel-mini {
+  opacity: 0;
+  transform: translateX(0);
+}
+
+footer.reveal.is-visible .footer-icons .pixel-mini:first-child {
+  animation: footerGroomIn 2s ease-out forwards;
+}
+
+footer.reveal.is-visible .footer-icons .pixel-mini:last-child {
+  animation: footerBrideIn 2s ease-out forwards;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  #app {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    box-sizing: border-box;
+  }
+
+  #app > header {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    width: calc(100% + 2.5rem);
+  }
+
+  section {
+    padding: 1.5rem 1.25rem;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 11px;
+  }
+
+  #app {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+
+  #app > header {
+    margin-left: -3rem;
+    margin-right: -3rem;
+    width: calc(100% + 6rem);
+  }
+
+  section {
+    padding: 1rem 0.875rem;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
+  footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
 }

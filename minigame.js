@@ -94,8 +94,8 @@ function initGame(canvas) {
   function updateOverlayPosition() {
     if (!overlayImg || overlayImg.style.display === "none") return;
     const rect = canvas.getBoundingClientRect();
-    const maxW = Math.round(rect.width * 0.6);
-    const maxH = Math.round(rect.height * 0.5);
+    const maxW = Math.round(rect.width * 0.42);
+    const maxH = Math.round(rect.height * 0.35);
     const r =
       (overlayImg.naturalWidth || imgRotate.naturalWidth) /
       (overlayImg.naturalHeight || imgRotate.naturalHeight || 1);
@@ -107,9 +107,10 @@ function initGame(canvas) {
     }
     overlayImg.style.width = drawW + "px";
     overlayImg.style.height = drawH + "px";
+    // small extra offset to compensate for transparent padding in the GIF
     const leftPos = Math.round(rect.left + (rect.width - drawW) / 2);
     // Slightly raise the overlay so it doesn't sit too low on tall portrait screens
-    const verticalOffset = Math.round(rect.height * 0.08);
+    const verticalOffset = Math.round(rect.height * 0.2);
     const topPos = Math.round(rect.top + (rect.height - drawH) / 2 - verticalOffset);
     overlayImg.style.left = leftPos + "px";
     overlayImg.style.top = topPos + "px";
@@ -649,7 +650,7 @@ function initGame(canvas) {
 
     // font sizing responsive
     const titleSize = Math.round(clamp(height * 0.08, 5, 48));
-    const titleShadowDistance = titleSize * 0.15;
+    const titleShadowDistance = titleSize * 0.10;
     const subtitleSize = Math.round(clamp(height * 0.04, 12, 24));
     const subtitleShadowDistance = subtitleSize * 0.11;
     const scoreSize = Math.round(clamp(height * 0.025, 10, 18));
@@ -675,7 +676,8 @@ function initGame(canvas) {
       const y = height - groundHeight - targetHeight + bgNudge;
 
       ctx.save();
-      ctx.globalAlpha = 0.35; // regola qui l'opacità (0.0 - 1.0)
+      const bgAlpha = isMobileDevice && !orientationOk ? 0.8 : 0.35;
+      ctx.globalAlpha = bgAlpha; // regola qui l'opacità (0.0 - 1.0)
       ctx.drawImage(imgBackground, x, y, targetWidth, targetHeight);
       ctx.restore();
     }
@@ -694,7 +696,7 @@ function initGame(canvas) {
       ctx.fillStyle = "rgb(207, 3, 3)";
       ctx.fillText(title, width / 2 + 2, 80 + titleShadowDistance);
 
-      ctx.fillStyle = "yellow";
+      ctx.fillStyle = "rgb(255, 221, 69)";
       ctx.fillText(title, width / 2, 80);
 
       // SOTTOTITOLO CON OUTLINE (lampeggiante)
@@ -716,6 +718,32 @@ function initGame(canvas) {
     // Terreno
     ctx.fillStyle = "#3ea043";
     ctx.fillRect(0, height - groundHeight, width, groundHeight);
+
+    // In mobile + portrait, disegna una linea gialla in basso
+    if (isMobileDevice && !orientationOk) {
+      ctx.save();
+      const baseWidth = Math.max(4, Math.round(height * 0.006));
+      const yLine = height - groundHeight;
+
+      // ombra scura subito sotto (come i riquadri delle sezioni)
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.lineWidth = baseWidth * 0.9;
+      const shadowOffset = Math.max(2, Math.round(height * 0.02));
+      ctx.beginPath();
+      ctx.moveTo(0, yLine + shadowOffset);
+      ctx.lineTo(width, yLine + shadowOffset);
+      ctx.stroke();
+
+      // linea gialla principale
+      ctx.strokeStyle = "rgb(255, 221, 69)";
+      ctx.lineWidth = baseWidth;
+      ctx.beginPath();
+      ctx.moveTo(0, yLine);
+      ctx.lineTo(width, yLine);
+      ctx.stroke();
+
+      ctx.restore();
+    }
 
     // Se orientamento non corretto su mobile, mostra overlay per ruotare
     if (!orientationOk) {
@@ -832,7 +860,7 @@ function initGame(canvas) {
       ctx.fillStyle = "#cf0303";
       ctx.fillText(gameOverMessage, x + 6, y + 6);
 
-      ctx.fillStyle = "yellow";
+      ctx.fillStyle = "rgb(255, 221, 69)";
       ctx.fillText(gameOverMessage, x, y);
 
       // messaggio restart con outline

@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
     />
-    <title>Matrimonio di Claudio ed Elena</title>
+    <title>Il Matrimonio di Claudio ed Elena</title>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css" />
@@ -27,8 +27,10 @@
       </header>
 
       <section class="reveal">
-        <h1>{{giornoCerimonia}}</h1>
-        <h1>{{ dataCerimonia }}</h1>
+        <h1 class="ceremony-date">
+          <span class="ceremony-date__day">{{ dataCerimoniaGiorno }}</span>
+          <span class="ceremony-date__full">{{ dataCerimoniaData }}</span>
+        </h1>
         <br />
         <hr class="section-sep" />
         <br />
@@ -39,6 +41,10 @@
         <img src="img/chiesa1.png" alt="" class="pixel-chiesa" />
         <p>{{ indirizzoCerimonia }}</p>
         <p>{{ oraCerimonia }}</p>
+        <a :href="linkMappaParcheggio" target="_blank" rel="noopener noreferrer"
+          >Clicca per vedere dove poter parcheggiare</a>
+        <br />
+        <br />
         <br />
         <hr class="section-sep" />
         <br />
@@ -48,7 +54,6 @@
         >
         <img src="img/valle-di-badia.png" alt="" class="pixel-valle" />
         <p>{{ indirizzoRicevimento }}</p>
-        <p>{{ oraRicevimento }}</p>
         <br />
       </section>
 
@@ -60,22 +65,24 @@
           >
           <br />
           <br />
-          Codice Lista: {{ codiceLista }}
+          Codice Lista: <span class="details-value">{{ codiceLista }}</span>
           <img
             src="img/copy3.png"
             class="copy-icon"
             @click="copiaCodice"
             alt="copy"
           />
+          <span v-if="copiedCodice" class="copy-feedback">Copiato!</span>
           <br />
           <br />
-          Password: {{ passwordLista }}
+          Password: <span class="details-value">{{ passwordLista }}</span>
           <img
             src="img/copy3.png"
             class="copy-icon"
             @click="copiaPassword"
             alt="copy"
           />
+          <span v-if="copiedPassword" class="copy-feedback">Copiato!</span>
         </p>
         <br />
         <hr class="section-sep small" />
@@ -83,12 +90,14 @@
         <br />
         <p>Oppure, se volete, potete contribuire al nostro viaggio di nozze:</p>
         <p>
-          {{ iban }}<img
+          <span class="details-value">{{ iban }}</span
+          ><img
             src="img/copy3.png"
             class="copy-icon"
             @click="copiaIBAN"
             alt="copy"
           />
+          <span v-if="copiedIban" class="copy-feedback">Copiato!</span>
         </p>
         <br />
         <p>Grazie di cuore a tutti! ❤️</p>
@@ -152,8 +161,8 @@
       createApp({
         data() {
           return {
-            giornoCerimonia: "Domenica",
-            dataCerimonia: "11 Ottobre 2026",
+            dataCerimoniaGiorno: "DOMENICA",
+            dataCerimoniaData: "11 OTTOBRE 2026",
             luogoCerimonia: "Chiesa di San Sisto",
             linkCerimonia: "https://maps.app.goo.gl/Vh65xmkwGpjVCPsn8",
             indirizzoCerimonia: "Piazza Francesco Buonamici 1, Pisa",
@@ -167,23 +176,42 @@
             codiceLista: "451019888",
             passwordLista: "ElenaeClaudio16!",
             iban: "IT60X0542811101000000123456",
+            linkMappaParcheggio:
+              "https://www.google.com/maps/d/edit?mid=1wjMBid1zmJXdH5fCk5TngH9JMKUkkCA&usp=sharing",
+            copiedCodice: false,
+            copiedPassword: false,
+            copiedIban: false,
           };
         },
         methods: {
           copiaCodice() {
             navigator.clipboard
               .writeText(this.codiceLista)
+              .then(() => this._setCopiedFlag("Codice"))
               .catch(() => alert("Errore nella copia del Codice Lista"));
           },
           copiaPassword() {
             navigator.clipboard
               .writeText(this.passwordLista)
+              .then(() => this._setCopiedFlag("Password"))
               .catch(() => alert("Errore nella copia della Password Lista"));
           },
           copiaIBAN() {
             navigator.clipboard
               .writeText(this.iban)
+              .then(() => this._setCopiedFlag("Iban"))
               .catch(() => alert("Errore nella copia dell'IBAN"));
+          },
+          _setCopiedFlag(key) {
+            const flagName = `copied${key}`;
+            const timeoutName = `_copyTimeout${key}`;
+            this[flagName] = true;
+            if (this[timeoutName]) {
+              clearTimeout(this[timeoutName]);
+            }
+            this[timeoutName] = setTimeout(() => {
+              this[flagName] = false;
+            }, 1600);
           },
         },
         components: {
@@ -242,7 +270,7 @@
 
     <footer class="reveal">
       <div class="footer-content">
-        <p>Claudio & Elena</p>
+        <p>Elena & Claudio</p>
         <p>Domenica 11 Ottobre 2026</p>
 
         <div class="footer-icons">
