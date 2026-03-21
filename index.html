@@ -8,7 +8,7 @@
     />
     <title>Il Matrimonio di Claudio ed Elena</title>
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <!-- FONT PIXEL ART -->
@@ -32,6 +32,31 @@
           <span class="ceremony-date__full">{{ dataCerimoniaData }}</span>
         </h1>
         <br />
+
+        <div class="countdown" v-if="!matrimonioPassato">
+          <div class="countdown-unit">
+            <span class="countdown-number">{{ countdown.giorni }}</span>
+            <span class="countdown-label">giorni</span>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <span class="countdown-number">{{ countdown.ore }}</span>
+            <span class="countdown-label">ore</span>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <span class="countdown-number">{{ countdown.minuti }}</span>
+            <span class="countdown-label">min</span>
+          </div>
+          <div class="countdown-sep">:</div>
+          <div class="countdown-unit">
+            <span class="countdown-number">{{ countdown.secondi }}</span>
+            <span class="countdown-label">sec</span>
+          </div>
+        </div>
+        <p v-else class="countdown-done">Ci siamo sposati! ❤️</p>
+
+        <br />
         <hr class="section-sep" />
         <br />
         <h2>Cerimonia</h2>
@@ -41,8 +66,7 @@
         <img src="img/chiesa1.png" alt="" class="pixel-chiesa" />
         <p>{{ indirizzoCerimonia }}</p>
         <p>{{ oraCerimonia }}</p>
-        <a :href="linkMappaParcheggio" target="_blank" rel="noopener noreferrer"
-          >Clicca per vedere dove poter parcheggiare</a>
+        <a :href="linkMappaParcheggio">Clicca per vedere dove poter parcheggiare</a>
         <br />
         <br />
         <br />
@@ -166,22 +190,51 @@
             luogoCerimonia: "Chiesa di San Sisto",
             linkCerimonia: "https://maps.app.goo.gl/Vh65xmkwGpjVCPsn8",
             indirizzoCerimonia: "Piazza Francesco Buonamici 1, Pisa",
-            oraCerimonia: "Ore 10:00",
+            oraCerimonia: "Ore 11:30",
             luogoRicevimento: "Valle di Badia",
             linkRicevimento: "https://maps.app.goo.gl/8kzoFq4XTFYPheQ4A",
             indirizzoRicevimento: "Via di Badia 24, Buti (PI)",
-            oraRicevimento: "Ore 12:00",
             linkLista:
               "https://www.rinascentelistanozze.it/ListaNozze/it/AreaDonatori",
             codiceLista: "451019888",
             passwordLista: "ElenaeClaudio16!",
-            iban: "IT60X0542811101000000123456",
-            linkMappaParcheggio:
-              "https://www.google.com/maps/d/edit?mid=1wjMBid1zmJXdH5fCk5TngH9JMKUkkCA&usp=sharing",
+            iban: "IT1900366901600282545018977",
+            linkMappaParcheggio: "parcheggi.html",
             copiedCodice: false,
             copiedPassword: false,
             copiedIban: false,
+            countdown: { giorni: "00", ore: "00", minuti: "00", secondi: "00" },
+            matrimonioPassato: false,
+            _countdownInterval: null,
           };
+        },
+        mounted() {
+          const target = new Date(2026, 9, 11, 12, 30);
+          const pad = (n) => String(n).padStart(2, "0");
+          const tick = () => {
+            const now = new Date();
+            const diff = target - now;
+            if (diff <= 0) {
+              this.matrimonioPassato = true;
+              clearInterval(this._countdownInterval);
+              return;
+            }
+            const giorni = Math.floor(diff / 86400000);
+            const ore = Math.floor((diff % 86400000) / 3600000);
+            const minuti = Math.floor((diff % 3600000) / 60000);
+            const secondi = Math.floor((diff % 60000) / 1000);
+            this.countdown = {
+              giorni: pad(giorni),
+              ore: pad(ore),
+              minuti: pad(minuti),
+              secondi: pad(secondi),
+            };
+          };
+          tick();
+          this._countdownInterval = setInterval(tick, 1000);
+        },
+        unmounted() {
+          clearInterval(this._countdownInterval);
         },
         methods: {
           copiaCodice() {
@@ -268,15 +321,69 @@
       })();
     </script>
 
+    <script>
+      // Footer walk cycle — starts when footer becomes visible
+      (function () {
+        var sposoCycles = ["img/sposo-1.png", "img/sposo-2.png", "img/sposo-3.png"];
+        var sposaCycles = ["img/sposa-1.png", "img/sposa-2.png"];
+        var si = 0, bi = 0;
+
+        function startWalk() {
+          var sposo = document.getElementById("footer-sposo");
+          var sposa = document.getElementById("footer-sposa");
+          if (!sposo || !sposa) return;
+          var interval = setInterval(function () {
+            si = (si + 1) % sposoCycles.length;
+            bi = (bi + 1) % sposaCycles.length;
+            sposo.src = sposoCycles[si];
+            sposa.src = sposaCycles[bi];
+          }, 150);
+          setTimeout(function () {
+            clearInterval(interval);
+            sposo.src = "img/sposo-2.png";
+            sposa.src = "img/sposa-2.png";
+          }, 5000);
+        }
+
+        function waitForVisible() {
+          var footer = document.querySelector("footer.reveal");
+          if (!footer) return;
+          if (footer.classList.contains("is-visible")) {
+            startWalk();
+            return;
+          }
+          var obs = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+              if (m.target.classList.contains("is-visible")) {
+                obs.disconnect();
+                startWalk();
+              }
+            });
+          });
+          obs.observe(footer, { attributes: true, attributeFilter: ["class"] });
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", waitForVisible);
+        } else {
+          waitForVisible();
+        }
+      })();
+    </script>
+
     <footer class="reveal">
       <div class="footer-content">
         <p>Elena & Claudio</p>
         <p>Domenica 11 Ottobre 2026</p>
 
         <div class="footer-icons">
-          <img src="img/sposo-2.png" alt="" class="pixel-mini" />
+          <span class="footer-char footer-char--sposo">
+            <img id="footer-sposo" src="img/sposo-1.png" alt="" class="pixel-mini" />
+          </span>
           <img src="img/yes-no.gif" alt="" class="pixel-mid" />
-          <img src="img/sposa-2b.png" alt="" class="pixel-mini" />
+          <span class="footer-char footer-char--sposa">
+            <img id="footer-sposa" src="img/sposa-1.png" alt="" class="pixel-mini" />
+          </span>
         </div>
       </div>
     </footer>
