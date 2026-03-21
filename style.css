@@ -544,3 +544,80 @@ footer.reveal.is-visible .footer-icons .footer-char:last-child {
   }
 
 }
+
+/* Pagina parcheggi */
+.parking-page {
+  max-width: 840px;
+  margin: 2.5rem auto;
+  padding: 0 1.25rem;
+  box-sizing: border-box;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 0.75rem;
+  color: #ffffff;
+}
+
+.warning-box {
+  background: rgb(255, 221, 69);
+  border: 4px solid rgb(214, 0, 0);
+  box-shadow:
+    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
+    0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.warning-box h2 {
+  color: rgb(214, 0, 0);
+  font-size: clamp(0.7rem, 2.5vw, 1rem);
+  margin: 0 0 1rem 0;
+  text-shadow: 0.15rem 0.15rem 0 rgba(0, 0, 0, 0.5);
+}
+
+.warning-box p {
+  color: #1a1440;
+  font-size: clamp(0.55rem, 1.8vw, 0.75rem);
+  line-height: 2;
+  text-shadow: none;
+  margin: 0;
+}
+
+.warning-icon {
+  font-style: normal;
+  margin-right: 0.4rem;
+}
+
+.map-container {
+  background: rgb(255, 255, 255);
+  border: 4px solid rgb(255, 221, 69);
+  box-shadow:
+    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
+    0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  padding: 0;
+}
+
+.map-container iframe {
+  display: block;
+  width: 100%;
+  height: clamp(340px, 60vw, 520px);
+  border: none;
+}
+
+.map-caption {
+  padding: 0.75rem 1rem;
+  font-size: clamp(0.5rem, 1.6vw, 0.65rem);
+  color: #3ea043;
+  text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.6);
+  line-height: 2;
+}
+
+@media (max-width: 480px) {
+  .parking-page {
+    padding: 0 1rem;
+    margin: 1.5rem auto;
+  }
+}
