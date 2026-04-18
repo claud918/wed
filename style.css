@@ -103,6 +103,11 @@ a:hover {
   color: rgb(84, 201, 255);
 }
 
+/* Nel box superiore i link devono avere la stessa dimensione del box sotto */
+section > a {
+  font-size: 0.8rem;
+}
+
 /* Header */
 header {
   text-align: center;
