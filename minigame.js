@@ -179,6 +179,10 @@ function initGame(canvas) {
   // Posizione orizzontale della chiesa (scorre con il mondo)
   let chiesaX = 50;
   const chiesaSpeed = 3;
+  // Collision tuning: keep gameplay fair vs visible sprite.
+  const OBSTACLE_HITBOX_SCALE = 0.56;
+  const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.22;
+  const COLLISION_GRACE_PX = 3;
   // valori per regolare la posizione verticale se le immagini hanno padding
   const CHIESA_NUDGE_FACTOR = 0.215; // sposta la chiesa verso il basso di questa frazione dell'altezza finale
   const BG_NUDGE_FACTOR = 0.41; // sposta il background verso il basso di questa frazione
@@ -409,12 +413,16 @@ function initGame(canvas) {
       width: size,
       height: size,
       passed: false,
-      hitbox: {
-        xOffset: 6,
-        yOffset: 6,
-        width: size - 12,
-        height: size - 12,
-      },
+      hitbox: {},
+    };
+
+    const hitboxWidth = Math.max(12, Math.round(size * OBSTACLE_HITBOX_SCALE));
+    const hitboxHeight = Math.max(12, Math.round(size * OBSTACLE_HITBOX_SCALE));
+    obstacle.hitbox = {
+      xOffset: Math.round((size - hitboxWidth) / 2),
+      yOffset: Math.round(size * OBSTACLE_HITBOX_Y_OFFSET_SCALE),
+      width: hitboxWidth,
+      height: hitboxHeight,
     };
 
     // appoggia l’ostacolo sul terreno (il bordo inferiore tocca il terreno)
@@ -528,10 +536,14 @@ function initGame(canvas) {
       const b = o;
 
       if (
-        a.x + a.hitbox.xOffset < b.x + b.hitbox.xOffset + b.hitbox.width &&
-        a.x + a.hitbox.xOffset + a.hitbox.width > b.x + b.hitbox.xOffset &&
-        a.y + a.hitbox.yOffset < b.y + b.hitbox.yOffset + b.hitbox.height &&
-        a.y + a.hitbox.yOffset + a.hitbox.height > b.y + b.hitbox.yOffset
+        a.x + a.hitbox.xOffset + COLLISION_GRACE_PX <
+          b.x + b.hitbox.xOffset + b.hitbox.width &&
+        a.x + a.hitbox.xOffset + a.hitbox.width - COLLISION_GRACE_PX >
+          b.x + b.hitbox.xOffset &&
+        a.y + a.hitbox.yOffset + COLLISION_GRACE_PX <
+          b.y + b.hitbox.yOffset + b.hitbox.height &&
+        a.y + a.hitbox.yOffset + a.hitbox.height - COLLISION_GRACE_PX >
+          b.y + b.hitbox.yOffset
       ) {
         gameOver = true;
       }
