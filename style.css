@@ -72,7 +72,7 @@ p {
 }
 
 .details-value {
-  color: rgb(0, 204, 255)
+  color: rgb(0, 204, 255);
 }
 
 .copy-feedback {
@@ -280,12 +280,28 @@ section {
   display: inline-block;
 }
 
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 0;
+}
+
+.copy-btn:focus-visible {
+  outline: 3px solid rgb(46, 119, 255);
+  outline-offset: 4px;
+}
+
 .copy-icon {
+  display: block;
   width: clamp(28px, 8vw, 40px);
   height: auto;
-  cursor: pointer;
-  margin-left: 12px;
-  vertical-align: middle;
   image-rendering: pixelated;
   transition:
     transform 0.12s ease,
@@ -293,8 +309,30 @@ section {
   filter: drop-shadow(0.2rem 0.2rem 0 rgba(0, 0, 0, 0.45));
 }
 
-.copy-icon:hover {
+.copy-btn:hover .copy-icon {
   transform: scale(1.15);
+}
+
+/* IBAN + copy: stessa riga (scroll orizzontale se stretto) */
+.iban-line {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.iban-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.iban-row .copy-btn--iban {
+  margin-left: 0;
+  flex-shrink: 0;
 }
 
 .pixel-mini {
