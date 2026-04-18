@@ -703,7 +703,7 @@ function initGame(canvas) {
       ctx.font = `${titleSize}px 'Press Start 2P'`;
       ctx.textAlign = "center";
 
-      ctx.fillStyle = "rgb(207, 3, 3)";
+      ctx.fillStyle = "rgb(214, 0, 0)";
       ctx.fillText(title, width / 2 + 2, 80 + titleShadowDistance);
 
       ctx.fillStyle = "rgb(255, 221, 69)";
@@ -867,7 +867,7 @@ function initGame(canvas) {
       const x = width / 2;
       const y = height / 2;
 
-      ctx.fillStyle = "#cf0303";
+      ctx.fillStyle = "rgb(214, 0, 0)";
       ctx.fillText(gameOverMessage, x + 6, y + 6);
 
       ctx.fillStyle = "rgb(255, 221, 69)";
