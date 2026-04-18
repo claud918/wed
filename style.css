@@ -398,7 +398,7 @@ section {
 .countdown-number {
   font-family: "Press Start 2P", monospace;
   font-size: clamp(1rem, 3vw, 1.5rem);
-  color:  #3ea043;;
+  color: #3ea043;
   text-shadow: 0.15rem 0.15rem 0 rgba(0, 0, 0, 0.8);
   line-height: 1.2;
   display: block;
@@ -416,7 +416,7 @@ section {
 .countdown-sep {
   font-family: "Press Start 2P", monospace;
   font-size: clamp(0.9rem, 3vw, 1.5rem);
-  color:  #3ea043;;
+  color: #3ea043;
   text-shadow: 0.15rem 0.15rem 0 rgba(0, 0, 0, 0.8);
   line-height: 1.2;
   padding-top: 0;

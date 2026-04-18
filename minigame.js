@@ -204,13 +204,11 @@ function initGame(canvas) {
     const prev = orientationOk;
     orientationOk = window.innerWidth > window.innerHeight;
 
-    // If orientation changed, reset page zoom to 100% to avoid mobile zoom artifacts
+    // If orientation changed, reset scroll position so canvas sizing behaves predictably
     if (prev !== orientationOk) {
       try {
-        document.body.style.zoom = "1"; // 100%
-        document.documentElement.style.zoom = "1";
         // ensure viewport near top so canvas sizing behaves predictably
-        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        window.scrollTo(0, 0);
       } catch (e) {}
     }
 
