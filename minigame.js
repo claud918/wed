@@ -180,9 +180,9 @@ function initGame(canvas) {
   let chiesaX = 50;
   const chiesaSpeed = 3;
   // Collision tuning: keep gameplay fair vs visible sprite.
-  const OBSTACLE_HITBOX_SCALE = 0.56;
-  const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.22;
-  const COLLISION_GRACE_PX = 3;
+  const OBSTACLE_HITBOX_SCALE = 0.46;
+  const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.38;
+  const COLLISION_GRACE_PX = 4;
   // valori per regolare la posizione verticale se le immagini hanno padding
   const CHIESA_NUDGE_FACTOR = 0.215; // sposta la chiesa verso il basso di questa frazione dell'altezza finale
   const BG_NUDGE_FACTOR = 0.41; // sposta il background verso il basso di questa frazione
