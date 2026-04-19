@@ -611,7 +611,7 @@ footer.reveal.is-visible .footer-icons .footer-char:last-child {
   color: rgb(214, 0, 0);
   font-size: clamp(0.7rem, 2.5vw, 1rem);
   margin: 0 0 1rem 0;
-  text-shadow: 0.15rem 0.15rem 0 rgba(0, 0, 0, 0.5);
+  text-shadow: 0.10rem 0.10rem 0 rgba(0, 0, 0, 0.5);
 }
 
 .warning-box p {
