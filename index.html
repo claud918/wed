@@ -83,7 +83,26 @@
       </section>
 
       <section class="reveal">
-        <p>Questo il link alla nostra lista nozze, nel caso vogliate contribuire:</p>
+        <p>Se volete, potete contribuire al nostro viaggio di nozze:</p>
+        <p class="iban-line">
+          <span class="iban-row">
+            <span class="details-value">{{ iban }}</span>
+            <button
+              type="button"
+              class="copy-btn copy-btn--iban"
+              @click="copiaIBAN"
+              aria-label="Copia IBAN"
+            >
+              <img src="img/copy3.png" class="copy-icon" alt="" />
+            </button>
+          </span>
+          <span v-if="copiedIban" class="copy-feedback">Copiato!</span>
+        </p>
+        <br />
+        <hr class="section-sep small" />
+        <br />
+        <br />
+        <p>Questo invece è il link alla nostra lista nozze, nel caso vogliate contribuire:</p>
         <p>
           <a :href="linkLista" target="_blank" rel="noopener noreferrer"
             >Vai alla lista nozze</a
@@ -116,22 +135,6 @@
         <br />
         <hr class="section-sep small" />
         <br />
-        <br />
-        <p>Oppure, se volete, potete contribuire al nostro viaggio di nozze:</p>
-        <p class="iban-line">
-          <span class="iban-row">
-            <span class="details-value">{{ iban }}</span>
-            <button
-              type="button"
-              class="copy-btn copy-btn--iban"
-              @click="copiaIBAN"
-              aria-label="Copia IBAN"
-            >
-              <img src="img/copy3.png" class="copy-icon" alt="" />
-            </button>
-          </span>
-          <span v-if="copiedIban" class="copy-feedback">Copiato!</span>
-        </p>
         <br />
         <p>Grazie di cuore a tutti! <img src="img/heart.png" style="height:1.8em;vertical-align:middle;" /></p>
       </section>
