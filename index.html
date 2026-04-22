@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
@@ -66,8 +66,14 @@
         >
         <p>{{ indirizzoCerimonia }}</p>
         <p>{{ oraCerimonia }}</p>
-        <img src="img/chiesa1b.png" alt="Chiesa di San Sisto (pixel art)" class="pixel-chiesa" />
-        <a :href="linkMappaParcheggio">Clicca qui per avere info sul parcheggio</a>
+        <img
+          src="img/chiesa1b.png"
+          alt="Chiesa di San Sisto (pixel art)"
+          class="pixel-chiesa"
+        />
+        <a :href="linkMappaParcheggio"
+          >Clicca qui per avere info sul parcheggio</a
+        >
         <br />
         <br />
         <br />
@@ -78,7 +84,11 @@
           >{{ luogoRicevimento }}</a
         >
         <p>{{ indirizzoRicevimento }}</p>
-        <img src="img/valle-di-badia.png" alt="Valle di Badia (pixel art)" class="pixel-valle" />
+        <img
+          src="img/valle-di-badia.png"
+          alt="Valle di Badia (pixel art)"
+          class="pixel-valle"
+        />
         <br />
       </section>
 
@@ -98,11 +108,17 @@
           </span>
           <span v-if="copiedIban" class="copy-feedback">Copiato!</span>
         </p>
+        <p class="image-wrap">
+          <img src="img/aereo.png" alt="Aereo" class="iban-airplane" />
+        </p>
         <br />
         <hr class="section-sep small" />
         <br />
         <br />
-        <p>Questo invece è il link alla nostra lista nozze, nel caso vogliate contribuire:</p>
+        <p>
+          Questo invece è il link alla nostra lista nozze, nel caso vogliate
+          contribuire:
+        </p>
         <p>
           <a :href="linkLista" target="_blank" rel="noopener noreferrer"
             >Vai alla lista nozze</a
@@ -132,11 +148,20 @@
           </button>
           <span v-if="copiedPassword" class="copy-feedback">Copiato!</span>
         </p>
+        <p class="image-wrap">
+          <img src="img/casa.png" alt="Casa" class="iban-airplane" />
+        </p>
         <br />
         <hr class="section-sep small" />
         <br />
         <br />
-        <p>Grazie di cuore a tutti! <img src="img/heart.png" style="height:1.8em;vertical-align:middle;" /></p>
+        <p>
+          Grazie di cuore a tutti!
+          <img
+            src="img/heart.png"
+            style="height: 1.8em; vertical-align: middle"
+          />
+        </p>
       </section>
     </div>
 
@@ -150,11 +175,21 @@
 
         <div class="footer-icons">
           <span class="footer-char footer-char--sposo">
-            <img id="footer-sposo" src="img/sposo-1.png" alt="" class="pixel-mini" />
+            <img
+              id="footer-sposo"
+              src="img/sposo-1.png"
+              alt=""
+              class="pixel-mini"
+            />
           </span>
           <img src="img/yes-no.gif" alt="Sì / No" class="pixel-mid" />
           <span class="footer-char footer-char--sposa">
-            <img id="footer-sposa" src="img/sposa-1.png" alt="" class="pixel-mini" />
+            <img
+              id="footer-sposa"
+              src="img/sposa-1.png"
+              alt=""
+              class="pixel-mini"
+            />
           </span>
         </div>
       </div>
