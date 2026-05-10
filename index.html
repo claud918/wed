@@ -103,10 +103,13 @@
               @click="copiaIBAN"
               aria-label="Copia IBAN"
             >
-              <img src="img/copy3.png" class="copy-icon" alt="" />
+              <img
+                :src="copiedIban ? 'img/spunta.png' : 'img/copy3.png'"
+                class="copy-icon"
+                :alt="copiedIban ? 'Copiato' : 'Copia'"
+              />
             </button>
           </span>
-          <span v-if="copiedIban" class="copy-feedback">Copiato!</span>
         </p>
         <p class="image-wrap">
           <img src="img/aereo.png" alt="Aereo" class="iban-airplane" />
@@ -125,28 +128,40 @@
           >
           <br />
           <br />
-          Codice Lista: <span class="details-value">{{ codiceLista }}</span>
-          <button
-            type="button"
-            class="copy-btn"
-            @click="copiaCodice"
-            aria-label="Copia codice lista"
-          >
-            <img src="img/copy3.png" class="copy-icon" alt="" />
-          </button>
-          <span v-if="copiedCodice" class="copy-feedback">Copiato!</span>
+          <span class="iban-row">
+            <span>Codice Lista:</span>
+            <span class="details-value">{{ codiceLista }}</span>
+            <button
+              type="button"
+              class="copy-btn"
+              @click="copiaCodice"
+              aria-label="Copia codice lista"
+            >
+              <img
+                :src="copiedCodice ? 'img/spunta.png' : 'img/copy3.png'"
+                class="copy-icon"
+                :alt="copiedCodice ? 'Copiato' : 'Copia'"
+              />
+            </button>
+          </span>
           <br />
           <br />
-          Password: <span class="details-value">{{ passwordLista }}</span>
-          <button
-            type="button"
-            class="copy-btn"
-            @click="copiaPassword"
-            aria-label="Copia password lista"
-          >
-            <img src="img/copy3.png" class="copy-icon" alt="" />
-          </button>
-          <span v-if="copiedPassword" class="copy-feedback">Copiato!</span>
+          <span class="iban-row">
+            <span>Password:</span>
+            <span class="details-value">{{ passwordLista }}</span>
+            <button
+              type="button"
+              class="copy-btn"
+              @click="copiaPassword"
+              aria-label="Copia password lista"
+            >
+              <img
+                :src="copiedPassword ? 'img/spunta.png' : 'img/copy3.png'"
+                class="copy-icon"
+                :alt="copiedPassword ? 'Copiato' : 'Copia'"
+              />
+            </button>
+          </span>
         </p>
         <p class="image-wrap">
           <img src="img/casa.png" alt="Casa" class="iban-airplane" />
