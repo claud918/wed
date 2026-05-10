@@ -111,7 +111,9 @@ function initGame(canvas) {
     const leftPos = Math.round(rect.left + (rect.width - drawW) / 2);
     // Slightly raise the overlay so it doesn't sit too low on tall portrait screens
     const verticalOffset = Math.round(rect.height * 0.2);
-    const topPos = Math.round(rect.top + (rect.height - drawH) / 2 - verticalOffset);
+    const topPos = Math.round(
+      rect.top + (rect.height - drawH) / 2 - verticalOffset,
+    );
     overlayImg.style.left = leftPos + "px";
     overlayImg.style.top = topPos + "px";
     // position caption centered below the gif
@@ -170,6 +172,9 @@ function initGame(canvas) {
   let jumpPower = -14;
   let gameOver = false;
   let score = 0;
+  let difficulty = 1; // aumenta con il punteggio
+  let baseSpeed = 5; // velocità base degli ostacoli
+  let baseSpawnRate = 0.02; // tasso base di spawn
   let jumpPressed = false; // per salto variabile
   let gameStarted = false; // il gioco parte solo dopo click
   // track if the last touch was handled by the game (prevents preventing default when user touched the ground area)
@@ -185,10 +190,10 @@ function initGame(canvas) {
   const COLLISION_GRACE_PX = 4;
   // valori per regolare la posizione verticale se le immagini hanno padding
   const CHIESA_NUDGE_FACTOR = 0.215; // sposta la chiesa verso il basso di questa frazione dell'altezza finale
-  const BG_NUDGE_FACTOR = 0.41; // sposta il background verso il basso di questa frazione
+  const BG_NUDGE_FACTOR = 0.37; // sposta il background verso il basso di questa frazione
   // Orientamento / device
   const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(
-    navigator.userAgent
+    navigator.userAgent,
   );
   let orientationOk = true; // true se il dispositivo è in landscape o non mobile
 
@@ -516,12 +521,14 @@ function initGame(canvas) {
     // Rimuovi nuvole fuori dallo schermo
     nuvole = nuvole.filter((n) => n.x + n.width > 0);
 
-    // Spawn ostacoli
-    if (Math.random() < 0.02) spawnObstacle();
+    // Spawn ostacoli con difficoltà crescente
+    const currentSpawnRate = 0.02 * difficulty;
+    if (Math.random() < currentSpawnRate) spawnObstacle();
 
-    // Sposta ostacoli
+    // Sposta ostacoli con velocità crescente
+    const currentSpeed = 5 * difficulty;
     ostacoli.forEach((o) => {
-      o.x -= 5;
+      o.x -= currentSpeed;
     });
 
     // Sposta la chiesa verso sinistra
@@ -660,7 +667,7 @@ function initGame(canvas) {
 
     // font sizing responsive
     const titleSize = Math.round(clamp(height * 0.08, 5, 48));
-    const titleShadowDistance = titleSize * 0.10;
+    const titleShadowDistance = titleSize * 0.1;
     const subtitleSize = Math.round(clamp(height * 0.04, 12, 24));
     const subtitleShadowDistance = subtitleSize * 0.11;
     const scoreSize = Math.round(clamp(height * 0.025, 10, 18));
@@ -757,8 +764,6 @@ function initGame(canvas) {
 
     // Se orientamento non corretto su mobile, mostra overlay per ruotare
     if (!orientationOk) {
-
-
       // if user provided GIF, show the DOM overlay so it animates
       if (rotateReady) {
         try {
@@ -786,7 +791,7 @@ function initGame(canvas) {
       chiesaX, // posizione orizzontale variabile della chiesa
       height - groundHeight - finalHeight + chiesaNudge, // nudge verso il basso
       finalWidth,
-      finalHeight
+      finalHeight,
     );
 
     // Disegna sposa
@@ -826,13 +831,13 @@ function initGame(canvas) {
       ctx.fillText(
         `Punti: ${score}`,
         width - Math.round(10 * scoreSize) + 2,
-        Math.round(40 + scoreSize) + 2
+        Math.round(40 + scoreSize) + 2,
       );
       ctx.fillStyle = "white";
       ctx.fillText(
         `Punti: ${score}`,
         width - Math.round(10 * scoreSize),
-        Math.round(40 + scoreSize)
+        Math.round(40 + scoreSize),
       );
     }
 
@@ -904,6 +909,7 @@ function initGame(canvas) {
     ostacoli = [];
     nuvole = [];
     score = 0;
+    difficulty = 1; // resetta difficoltà
     gameOver = false;
     jumpPressed = false;
 
