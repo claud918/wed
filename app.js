@@ -67,7 +67,7 @@
         indirizzoRicevimento: "Via di Badia 24, Buti (PI)",
         linkLista: "https://www.rinascentelistanozze.it/ListaNozze/it/AreaDonatori",
         codiceLista: "451019888",
-        passwordLista: "ElenaeClaudio16!",
+        passwordLista: "ElenaClaudio2026!",
         iban: "IT1900366901600282545018977",
         linkMappaParcheggio: "parcheggi.html",
         copiedCodice: false,
