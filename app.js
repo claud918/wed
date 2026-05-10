@@ -79,7 +79,7 @@
       };
     },
     mounted: function () {
-      var target = new Date(2026, 9, 11, 12, 30);
+      var target = new Date(2026, 9, 11, 11, 30);
       var pad = function (n) {
         return String(n).padStart(2, "0");
       };
