@@ -47,7 +47,7 @@ function initGame(canvas) {
   imgNuvola.src = "img/nuvola.png";
 
   const imgBackground = new Image();
-  imgBackground.src = "img/background.png";
+  imgBackground.src = "img/background5.png";
 
   // optional rotate GIF (user-provided)
   const imgRotate = new Image();
@@ -190,7 +190,7 @@ function initGame(canvas) {
   const COLLISION_GRACE_PX = 4;
   // valori per regolare la posizione verticale se le immagini hanno padding
   const CHIESA_NUDGE_FACTOR = 0.215; // sposta la chiesa verso il basso di questa frazione dell'altezza finale
-  const BG_NUDGE_FACTOR = 0.37; // sposta il background verso il basso di questa frazione
+  const BG_NUDGE_FACTOR = 0.36; // sposta il background verso il basso di questa frazione
   // Orientamento / device
   const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(
     navigator.userAgent,
@@ -569,11 +569,13 @@ function initGame(canvas) {
       }
     });
 
-    // Aumenta punteggio: 1 punto per ostacolo superato
+    // Aumenta punteggio e difficoltà
     ostacoli.forEach((o) => {
       if (!o.passed && o.x + o.width < sposo.x) {
         o.passed = true;
         score++;
+        // Aumenta difficoltà ogni 5 punti (+15% velocità/spawn)
+        difficulty = 1 + Math.floor(score / 5) * 0.15;
       }
     });
 
@@ -693,7 +695,7 @@ function initGame(canvas) {
       const y = height - groundHeight - targetHeight + bgNudge;
 
       ctx.save();
-      const bgAlpha = isMobileDevice && !orientationOk ? 0.8 : 0.35;
+      const bgAlpha = isMobileDevice && !orientationOk ? 0.8 : 0.4;
       ctx.globalAlpha = bgAlpha; // regola qui l'opacità (0.0 - 1.0)
       ctx.drawImage(imgBackground, x, y, targetWidth, targetHeight);
       ctx.restore();
