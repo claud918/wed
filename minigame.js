@@ -203,6 +203,7 @@ function initGame(canvas) {
   let startLoopActive = false; // (se non presente già)
   let updateLoopActive = false;
   let rafId = null;
+  let lastUpdateTime = performance.now();
   let pausedByScroll = false;
 
   function checkOrientation() {
@@ -457,7 +458,7 @@ function initGame(canvas) {
 
   // LOOP ------------------------------------------------------
 
-  function update() {
+  function update(now) {
     if (gameOver) {
       updateLoopActive = false;
       return;
@@ -472,9 +473,12 @@ function initGame(canvas) {
       return;
     }
 
+    const delta = Math.min(Math.max((now - lastUpdateTime) / 16.6667, 0.5), 3);
+    lastUpdateTime = now;
+
     // Movimento sposo (fisica)
-    sposo.vy += gravity;
-    sposo.y += sposo.vy;
+    sposo.vy += gravity * delta;
+    sposo.y += sposo.vy * delta;
     if (sposo.y > height - groundHeight - sposo.height) {
       sposo.y = height - groundHeight - sposo.height + 5;
       sposo.vy = 0;
@@ -489,8 +493,8 @@ function initGame(canvas) {
     }
 
     // Movimento sposa (fisica)
-    sposa.vy += gravity;
-    sposa.y += sposa.vy;
+    sposa.vy += gravity * delta;
+    sposa.y += sposa.vy * delta;
     if (sposa.y > height - groundHeight - sposa.height) {
       sposa.y = height - groundHeight - sposa.height + 2;
       sposa.vy = 0;
@@ -516,28 +520,28 @@ function initGame(canvas) {
     if (sposa.x < 0) sposa.x = 0;
 
     // Spawn nuvole
-    if (Math.random() < 0.01) spawnNuvola();
+    if (Math.random() < 0.01 * delta) spawnNuvola();
 
     // Movimento nuvole
     nuvole.forEach((n) => {
-      n.x -= n.speed;
+      n.x -= n.speed * delta;
     });
 
     // Rimuovi nuvole fuori dallo schermo
     nuvole = nuvole.filter((n) => n.x + n.width > 0);
 
     // Spawn ostacoli con difficoltà crescente
-    const currentSpawnRate = 0.02 * difficulty;
-    if (Math.random() < currentSpawnRate) spawnObstacle();
+    const currentSpawnRate = baseSpawnRate * difficulty;
+    if (Math.random() < currentSpawnRate * delta) spawnObstacle();
 
     // Sposta ostacoli con velocità crescente
-    const currentSpeed = 5 * difficulty;
+    const currentSpeed = baseSpeed * difficulty;
     ostacoli.forEach((o) => {
-      o.x -= currentSpeed;
+      o.x -= currentSpeed * delta;
     });
 
     // Sposta la chiesa verso sinistra
-    chiesaX -= chiesaSpeed;
+    chiesaX -= chiesaSpeed * delta;
 
     // Rimuovi ostacoli fuori dallo schermo
     ostacoli = ostacoli.filter((o) => o.x + o.width > 0);
@@ -592,7 +596,8 @@ function initGame(canvas) {
   function startUpdate() {
     if (updateLoopActive) return;
     updateLoopActive = true;
-    update();
+    lastUpdateTime = performance.now();
+    rafId = requestAnimationFrame(update);
   }
 
   function pauseGame() {
