@@ -601,7 +601,9 @@ function initGame(canvas) {
     ctx.fillRect(0, 0, width, height - groundHeight);
     const pauseMessage = "Gioco in pausa! Torna su per riprendere a giocare";
     const maxPauseWidth = width * 0.88;
-    const pauseSize = Math.round(clamp(Math.min(height * 0.04, width * 0.025), 12, 20));
+    const pauseSize = Math.round(
+      clamp(Math.min(height * 0.04, width * 0.025), 12, 20),
+    );
     let finalPauseSize = getFitFontSize(pauseMessage, pauseSize, maxPauseWidth);
     ctx.font = `${finalPauseSize}px 'Press Start 2P'`;
     ctx.textAlign = "center";
@@ -664,17 +666,17 @@ function initGame(canvas) {
   function getFitFontSize(text, baseFontSize, maxWidth, font) {
     let fontSize = baseFontSize;
     let minFontSize = Math.max(5, Math.round(baseFontSize * 0.4));
-    
+
     ctx.font = `${fontSize}px 'Press Start 2P'`;
     let textWidth = ctx.measureText(text).width;
-    
+
     // Reduce font size until text fits
     while (textWidth > maxWidth && fontSize > minFontSize) {
       fontSize = Math.max(minFontSize, Math.round(fontSize * 0.9));
       ctx.font = `${fontSize}px 'Press Start 2P'`;
       textWidth = ctx.measureText(text).width;
     }
-    
+
     return fontSize;
   }
 
@@ -688,13 +690,23 @@ function initGame(canvas) {
     } catch (e) {}
 
     // font sizing responsive - considera sia l'altezza che la larghezza per mobile landscape
-    const titleSize = Math.round(clamp(Math.min(height * 0.08, width * 0.04), 5, 32));
+    const titleSize = Math.round(
+      clamp(Math.min(height * 0.08, width * 0.04), 5, 32),
+    );
     const titleShadowDistance = titleSize * 0.1;
-    const subtitleSize = Math.round(clamp(Math.min(height * 0.04, width * 0.025), 12, 18));
+    const subtitleSize = Math.round(
+      clamp(Math.min(height * 0.04, width * 0.025), 12, 18),
+    );
     const subtitleShadowDistance = subtitleSize * 0.11;
-    const scoreSize = Math.round(clamp(Math.min(height * 0.025, width * 0.02), 10, 16));
-    const gameOverSize = Math.round(clamp(Math.min(height * 0.12, width * 0.08), 28, 42));
-    const restartSize = Math.round(clamp(Math.min(height * 0.04, width * 0.025), 12, 20));
+    const scoreSize = Math.round(
+      clamp(Math.min(height * 0.025, width * 0.02), 10, 16),
+    );
+    const gameOverSize = Math.round(
+      clamp(Math.min(height * 0.12, width * 0.08), 28, 42),
+    );
+    const restartSize = Math.round(
+      clamp(Math.min(height * 0.04, width * 0.025), 12, 20),
+    );
 
     // Disegna background fisso esteso oltre i bordi orizzontali mantenendo proporzioni
     if (
@@ -744,7 +756,11 @@ function initGame(canvas) {
       // SOTTOTITOLO CON OUTLINE (lampeggiante)
       const subtitle = "CLICCA PER AIUTARE CLAUDIO A FUGGIRE!";
       const maxSubtitleWidth = width * 0.88;
-      let finalSubtitleSize = getFitFontSize(subtitle, subtitleSize, maxSubtitleWidth);
+      let finalSubtitleSize = getFitFontSize(
+        subtitle,
+        subtitleSize,
+        maxSubtitleWidth,
+      );
       const subtitleShadowDist = finalSubtitleSize * 0.11;
       ctx.font = `${finalSubtitleSize}px 'Press Start 2P'`;
       ctx.textAlign = "center";
@@ -875,8 +891,14 @@ function initGame(canvas) {
       ctx.fillRect(0, 0, width, height - groundHeight);
       const pauseMessage = "Gioco in pausa! Torna su per riprendere a giocare";
       const maxPauseWidth = width * 0.88;
-      const pauseSize = Math.round(clamp(Math.min(height * 0.04, width * 0.025), 12, 20));
-      let finalPauseSize = getFitFontSize(pauseMessage, pauseSize, maxPauseWidth);
+      const pauseSize = Math.round(
+        clamp(Math.min(height * 0.04, width * 0.025), 12, 20),
+      );
+      let finalPauseSize = getFitFontSize(
+        pauseMessage,
+        pauseSize,
+        maxPauseWidth,
+      );
       ctx.font = `${finalPauseSize}px 'Press Start 2P'`;
       ctx.textAlign = "center";
 
@@ -897,7 +919,11 @@ function initGame(canvas) {
       // GAME OVER con outline
       const gameOverMessage = "GAME OVER";
       const maxGameOverWidth = width * 0.88;
-      let finalGameOverSize = getFitFontSize(gameOverMessage, gameOverSize, maxGameOverWidth);
+      let finalGameOverSize = getFitFontSize(
+        gameOverMessage,
+        gameOverSize,
+        maxGameOverWidth,
+      );
       ctx.font = `${finalGameOverSize}px 'Press Start 2P'`;
       ctx.textAlign = "center";
 
@@ -914,7 +940,11 @@ function initGame(canvas) {
       const restartMessage =
         "Claudio è spacciato! Clicca o premi Invio per riprovare";
       const maxRestartWidth = width * 0.88;
-      let finalRestartSize = getFitFontSize(restartMessage, restartSize, maxRestartWidth);
+      let finalRestartSize = getFitFontSize(
+        restartMessage,
+        restartSize,
+        maxRestartWidth,
+      );
       ctx.font = `${finalRestartSize}px 'Press Start 2P'`;
       ctx.textAlign = "center";
 
