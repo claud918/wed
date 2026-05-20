@@ -19,7 +19,7 @@ function initGame(canvas) {
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  let groundHeight = height * 50; // altezza terreno (calcolata dinamicamente su resize)
+  let groundHeight = 50; // altezza terreno iniziale (sarà aggiornata da updateGroundHeight)
 
   // Carica immagini
   const imgSposo1 = new Image();
@@ -132,7 +132,7 @@ function initGame(canvas) {
   // Stato del gioco
   let sposo = {
     x: 350,
-    y: height,
+    y: Math.max(30, height - 60), // posiziona sopra il terreno, almeno 30px dal top
     vy: 0,
     width: 50,
     height: 50,
@@ -150,7 +150,7 @@ function initGame(canvas) {
 
   let sposa = {
     x: sposo.x - 80,
-    y: height - groundHeight,
+    y: Math.max(30, height - 60), // stessa altezza dello sposo, sempre visibile
     vy: 0,
     width: 50,
     height: 50,
@@ -195,6 +195,7 @@ function initGame(canvas) {
   const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(
     navigator.userAgent,
   );
+  const isAndroid = /Android/i.test(navigator.userAgent);
   let orientationOk = true; // true se il dispositivo è in landscape o non mobile
 
   // evita che la logica di update riparta automaticamente dopo la rotazione
@@ -280,8 +281,12 @@ function initGame(canvas) {
 
   // aggiorna groundHeight in base all'altezza del canvas per mantenere proporzioni
   function updateGroundHeight() {
-    // usa una percentuale dell'altezza, ma non troppo piccolo
-    groundHeight = Math.max(30, Math.round(height * 0.09));
+    // su Android in landscape, usa percentuale più alta; su altri dispositivi usa percentuale bassa
+    let percentage = 0.09; // default per portrait e iOS
+    if (isAndroid && orientationOk) {
+      percentage = 0.25; // 25% per Android in landscape
+    }
+    groundHeight = Math.max(35, Math.round(height * percentage));
   }
 
   // Posiziona gli sposi vicino alla chiesa (usato su mobile)
