@@ -306,7 +306,7 @@ function initGame(canvas) {
     // su mobile in landscape, usa percentuale più alta per mostrare il terreno
     let percentage = 0.09; // default per portrait e iOS
     if (isMobileDevice && orientationOk) {
-      percentage = 0.30; // mobile landscape: più terreno per inquadrare meglio
+      percentage = 0.3; // mobile landscape: più terreno per inquadrare meglio
       groundHeight = Math.max(55, Math.round(height * percentage));
     } else {
       groundHeight = Math.max(35, Math.round(height * percentage));
@@ -371,20 +371,20 @@ function initGame(canvas) {
     sposa.width = sposa.height = spriteH;
     sposa.offset = -Math.round(spriteH * 1.6);
 
-    sposo.hitbox.xOffset = Math.round(spriteH * 0.20);
-    sposo.hitbox.yOffset = Math.round(spriteH * 0.10);
-    sposo.hitbox.width   = Math.round(spriteH * 0.60);
-    sposo.hitbox.height  = Math.round(spriteH * 0.80);
+    sposo.hitbox.xOffset = Math.round(spriteH * 0.2);
+    sposo.hitbox.yOffset = Math.round(spriteH * 0.1);
+    sposo.hitbox.width = Math.round(spriteH * 0.6);
+    sposo.hitbox.height = Math.round(spriteH * 0.8);
 
     sposa.hitbox.xOffset = Math.round(spriteH * 0.24);
     sposa.hitbox.yOffset = Math.round(spriteH * 0.12);
-    sposa.hitbox.width   = Math.round(spriteH * 0.52);
-    sposa.hitbox.height  = Math.round(spriteH * 0.76);
+    sposa.hitbox.width = Math.round(spriteH * 0.52);
+    sposa.hitbox.height = Math.round(spriteH * 0.76);
 
-    gravity     = height * 0.00175;
-    jumpPower   = -height * 0.035;
-    baseSpeed   = width  * 0.00417;
-    chiesaSpeed = width  * 0.0025;
+    gravity = height * 0.00175;
+    jumpPower = -height * 0.035;
+    baseSpeed = width * 0.00417;
+    chiesaSpeed = width * 0.0025;
   }
 
   // Posiziona gli sposi vicino alla chiesa (usato su mobile)
@@ -788,10 +788,7 @@ function initGame(canvas) {
       // Press Start 2P ha advance width = 1em per carattere; uso 1.02 per
       // includere eventuale spacing del font ed evitare overflow su Firefox mobile,
       // dove measureText può restituire valori del font fallback (più stretto).
-      return Math.max(
-        ctx.measureText(text).width,
-        text.length * sz * 1.02,
-      );
+      return Math.max(ctx.measureText(text).width, text.length * sz * 1.02);
     };
 
     let textWidth = widthAt(fontSize);
@@ -870,10 +867,13 @@ function initGame(canvas) {
       // Su mobile landscape parto grande e lascio che getFitFontSize riduca
       // fino a far entrare il titolo in larghezza (così è "il più grande possibile").
       // Su desktop mantengo il cap a 32 come prima.
-      const startSize = isLandscapeMobile
-        ? Math.round(width * 0.08)
-        : 32;
-      const finalTitleSize = getFitFontSize(title, startSize, maxTitleWidth, 10);
+      const startSize = isLandscapeMobile ? Math.round(width * 0.08) : 32;
+      const finalTitleSize = getFitFontSize(
+        title,
+        startSize,
+        maxTitleWidth,
+        10,
+      );
       const titleShadowDist = finalTitleSize * 0.1;
 
       ctx.font = `${finalTitleSize}px "Press Start 2P", monospace`;
@@ -892,7 +892,10 @@ function initGame(canvas) {
       // SOTTOTITOLO: ~65% del titolo, più distanziato di prima (1.5x vs 1.1x)
       const subtitle = "CLICCA PER AIUTARE CLAUDIO A FUGGIRE!";
       const maxSubtitleWidth = width * 0.92;
-      const targetSubtitleSize = Math.max(10, Math.round(finalTitleSize * 0.65));
+      const targetSubtitleSize = Math.max(
+        10,
+        Math.round(finalTitleSize * 0.65),
+      );
       const finalSubtitleSize = getFitFontSize(
         subtitle,
         targetSubtitleSize,
@@ -1016,17 +1019,9 @@ function initGame(canvas) {
       const scoreY = Math.round(25 + scoreSize);
 
       ctx.fillStyle = "black";
-      ctx.fillText(
-        `Punti: ${score}`,
-        scoreX + 2,
-        scoreY + 2,
-      );
+      ctx.fillText(`Punti: ${score}`, scoreX + 2, scoreY + 2);
       ctx.fillStyle = "white";
-      ctx.fillText(
-        `Punti: ${score}`,
-        scoreX,
-        scoreY,
-      );
+      ctx.fillText(`Punti: ${score}`, scoreX, scoreY);
       ctx.textAlign = "start"; // reset
     }
 
