@@ -303,11 +303,10 @@ function initGame(canvas) {
 
   // aggiorna groundHeight in base all'altezza del canvas per mantenere proporzioni
   function updateGroundHeight() {
-    // su mobile in landscape, usa percentuale più alta per mostrare il terreno
     let percentage = 0.09; // default per portrait e iOS
     if (isMobileDevice && orientationOk) {
-      percentage = 0.3; // mobile landscape: più terreno per inquadrare meglio
-      groundHeight = Math.max(55, Math.round(height * percentage));
+      percentage = 0.20; // mobile landscape: ground più sottile, più cielo visibile
+      groundHeight = Math.max(40, Math.round(height * percentage));
     } else {
       groundHeight = Math.max(35, Math.round(height * percentage));
     }
@@ -827,6 +826,40 @@ function initGame(canvas) {
     );
     const restartSize = subtitleSize; // stessa dimensione del sottotitolo
 
+    // Disegna nuvole PRIMA del background, così le nuvole basse sono coperte
+    // dalle sagome del paese (passano "dietro" all'immagine).
+    // Usa drawImage 9-arg per croppare 2 px sul bordo sinistro e inferiore
+    // di nuvola.png (il PNG ha un sottile bordo bianco "a L" da quei lati).
+    const nW = imgNuvola.naturalWidth || imgNuvola.width;
+    const nH = imgNuvola.naturalHeight || imgNuvola.height;
+    if (nW > 4 && nH > 4) {
+      const cropL = 8; // pixel da scartare a sinistra
+      const cropB = 2; // pixel da scartare in basso
+      nuvole.forEach((n) => {
+        ctx.drawImage(
+          imgNuvola,
+          cropL,
+          0,
+          nW - cropL,
+          nH - cropB,
+          Math.round(n.x),
+          Math.round(n.y),
+          Math.round(n.width),
+          Math.round(n.height),
+        );
+      });
+    } else {
+      nuvole.forEach((n) => {
+        ctx.drawImage(
+          imgNuvola,
+          Math.round(n.x),
+          Math.round(n.y),
+          Math.round(n.width),
+          Math.round(n.height),
+        );
+      });
+    }
+
     // Disegna background fisso esteso oltre i bordi orizzontali mantenendo proporzioni
     if (
       imgBackground.complete &&
@@ -846,16 +879,18 @@ function initGame(canvas) {
       const y = height - groundHeight - targetHeight + bgNudge;
 
       ctx.save();
-      const bgAlpha = isMobileDevice && !orientationOk ? 0.8 : 0.4;
-      ctx.globalAlpha = bgAlpha; // regola qui l'opacità (0.0 - 1.0)
+      // Mobile landscape: opaco al 100% così le case nascondono le nuvole disegnate
+      // sotto. Portrait: 0.8 (look tenue dietro la GIF rotate). Desktop: 0.4.
+      let bgAlpha;
+      if (isMobileDevice && !orientationOk) {
+        bgAlpha = 0.8;
+      } else {
+        bgAlpha = 0.4;
+      }
+      ctx.globalAlpha = bgAlpha;
       ctx.drawImage(imgBackground, x, y, targetWidth, targetHeight);
       ctx.restore();
     }
-
-    // Disegna nuvole
-    nuvole.forEach((n) => {
-      ctx.drawImage(imgNuvola, n.x, n.y, n.width, n.height);
-    });
 
     // TITOLO + SOTTOTITOLO (entrambi su un'unica riga)
     if (!gameStarted && orientationOk) {
