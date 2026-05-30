@@ -205,6 +205,11 @@ canvas.game-canvas {
   image-rendering: pixelated;
   margin: 0;
   border: none;
+  touch-action: manipulation;
+}
+
+body.game-fullscreen canvas.game-canvas {
+  touch-action: none;
 }
 
 /* Fullscreen game mode */

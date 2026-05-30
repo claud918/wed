@@ -183,7 +183,7 @@ function initGame(canvas) {
   let nuvole = [];
   // Posizione orizzontale della chiesa (scorre con il mondo)
   let chiesaX = 50;
-  const chiesaSpeed = 3;
+  let chiesaSpeed = 3;
   // Collision tuning: keep gameplay fair vs visible sprite.
   const OBSTACLE_HITBOX_SCALE = 0.46;
   const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.38;
@@ -197,6 +197,7 @@ function initGame(canvas) {
   );
   const isAndroid = /Android/i.test(navigator.userAgent);
   let orientationOk = true; // true se il dispositivo è in landscape o non mobile
+  let lastOrientationOk = true;
 
   // evita che la logica di update riparta automaticamente dopo la rotazione
   let preventAutoResume = false;
@@ -239,8 +240,15 @@ function initGame(canvas) {
 
       // riallinea altezza terreno e personaggi
       updateGroundHeight();
-      sposo.y = height - groundHeight - sposo.height + 5;
-      sposa.y = height - groundHeight - sposa.height + 2;
+      if (orientationOk) {
+        // landscape: posiziona più in basso
+        sposo.y = Math.max(30, height - groundHeight - sposo.height);
+        sposa.y = Math.max(30, height - groundHeight - sposa.height);
+      } else {
+        // portrait: posiziona normalmente
+        sposo.y = Math.max(30, height - 60);
+        sposa.y = Math.max(30, height - 60);
+      }
 
       // nascondi overlay se presenti
       try {
@@ -275,19 +283,108 @@ function initGame(canvas) {
     lastOrientationOk = orientationOk;
   }
 
-  window.addEventListener("resize", checkOrientation);
-  window.addEventListener("orientationchange", checkOrientation);
+  // Resize debounced + DPR-aware
+  let _resizeTimer = null;
+  function handleResize() {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      // checkOrientation prima: aggiorna .game-fullscreen, così il canvas
+      // ha già le dimensioni CSS finali quando resizeCanvas legge clientWidth/Height
+      checkOrientation();
+      resizeCanvas();
+      draw();
+    }, 80);
+  }
+  window.addEventListener("resize", handleResize);
+  window.addEventListener("orientationchange", handleResize);
   checkOrientation();
   updateGroundHeight();
+  applyResponsiveScale();
 
   // aggiorna groundHeight in base all'altezza del canvas per mantenere proporzioni
   function updateGroundHeight() {
-    // su Android in landscape, usa percentuale più alta; su altri dispositivi usa percentuale bassa
+    // su mobile in landscape, usa percentuale più alta per mostrare il terreno
     let percentage = 0.09; // default per portrait e iOS
-    if (isAndroid && orientationOk) {
-      percentage = 0.25; // 25% per Android in landscape
+    if (isMobileDevice && orientationOk) {
+      percentage = 0.30; // mobile landscape: più terreno per inquadrare meglio
+      groundHeight = Math.max(55, Math.round(height * percentage));
+    } else {
+      groundHeight = Math.max(35, Math.round(height * percentage));
     }
-    groundHeight = Math.max(35, Math.round(height * percentage));
+  }
+
+  // Ridimensiona il canvas tenendo conto del devicePixelRatio (testo nitido su retina)
+  // e ricalcola tutte le grandezze derivate da width/height.
+  function resizeCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const isFullscreen = document.body.classList.contains("game-fullscreen");
+    const header = canvas.parentElement;
+    let cssW, cssH;
+    if (isFullscreen) {
+      // Su Firefox mobile 100vw può eccedere window.innerWidth (layout viewport
+      // vs visual viewport). Il flex-center del parent finisce per spostare
+      // visivamente il canvas a destra, lasciando una banda verde a sinistra.
+      // Forziamo sia il parent che il canvas alle dimensioni del visual viewport,
+      // così coincidono e il flex non sbilancia nulla.
+      cssW = window.innerWidth || canvas.clientWidth;
+      cssH = window.innerHeight || canvas.clientHeight;
+      if (header) {
+        header.style.width = cssW + "px";
+        header.style.height = cssH + "px";
+      }
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+    } else {
+      // In non-fullscreen rimuovi gli override del parent e affidati al CSS.
+      if (header) {
+        header.style.width = "";
+        header.style.height = "";
+      }
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      cssW = canvas.clientWidth;
+      cssH = canvas.clientHeight;
+    }
+    if (!cssW || !cssH) return;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    width = cssW;
+    height = cssH;
+    updateGroundHeight();
+    applyResponsiveScale();
+    sposo.y = height - groundHeight - sposo.height;
+    sposa.y = height - groundHeight - sposa.height;
+    if (!gameStarted || gameOver) {
+      sposo.x = Math.round(width * 0.3);
+      sposa.x = sposo.x + sposa.offset;
+      positionCoupleNearChiesa();
+    }
+  }
+
+  // Calibrazione di riferimento: canvas desktop 1200x400 → valori identici a prima.
+  // Su mobile landscape (es. 844x390) tutto si riscala in modo coerente.
+  function applyResponsiveScale() {
+    const spriteH = clamp(Math.round(height * 0.125), 30, 90);
+    sposo.width = sposo.height = spriteH;
+    sposa.width = sposa.height = spriteH;
+    sposa.offset = -Math.round(spriteH * 1.6);
+
+    sposo.hitbox.xOffset = Math.round(spriteH * 0.20);
+    sposo.hitbox.yOffset = Math.round(spriteH * 0.10);
+    sposo.hitbox.width   = Math.round(spriteH * 0.60);
+    sposo.hitbox.height  = Math.round(spriteH * 0.80);
+
+    sposa.hitbox.xOffset = Math.round(spriteH * 0.24);
+    sposa.hitbox.yOffset = Math.round(spriteH * 0.12);
+    sposa.hitbox.width   = Math.round(spriteH * 0.52);
+    sposa.hitbox.height  = Math.round(spriteH * 0.76);
+
+    gravity     = height * 0.00175;
+    jumpPower   = -height * 0.035;
+    baseSpeed   = width  * 0.00417;
+    chiesaSpeed = width  * 0.0025;
   }
 
   // Posiziona gli sposi vicino alla chiesa (usato su mobile)
@@ -405,13 +502,16 @@ function initGame(canvas) {
   // OSTACOLI --------------------------------------------------
 
   function spawnObstacle() {
-    const size = 30 + Math.random() * 30;
+    // ostacoli proporzionali allo sposo (~60%-120% della sua altezza)
+    const baseSize = Math.max(20, Math.round(sposo.height * 0.6));
+    const size = baseSize + Math.random() * baseSize;
 
     // Se ci sono ostacoli recenti, controlla distanza
     const last = ostacoli[ostacoli.length - 1];
     const secondLast = ostacoli[ostacoli.length - 2];
 
-    const minDist = 120; // distanza minima
+    // distanza minima proporzionale alla larghezza canvas (120 su desktop 1200)
+    const minDist = Math.max(80, Math.round(width * 0.1));
 
     // Se c’è un ostacolo troppo vicino, non spawnare
     if (last && width - last.x < minDist) return;
@@ -570,7 +670,7 @@ function initGame(canvas) {
       const distanza = o.x - sposa.x;
 
       if (
-        distanza < 60 && // distanza regolabile
+        distanza < height * 0.15 && // proporzionale (60 su desktop h=400)
         distanza > 0 &&
         sposa.y >= height - groundHeight - sposa.height
       ) {
@@ -615,7 +715,7 @@ function initGame(canvas) {
       clamp(Math.min(height * 0.04, width * 0.025), 12, 20),
     );
     let finalPauseSize = getFitFontSize(pauseMessage, pauseSize, maxPauseWidth);
-    ctx.font = `${finalPauseSize}px 'Press Start 2P'`;
+    ctx.font = `${finalPauseSize}px "Press Start 2P", monospace`;
     ctx.textAlign = "center";
 
     ctx.fillStyle = "black";
@@ -672,19 +772,33 @@ function initGame(canvas) {
 
   // DRAW ------------------------------------------------------
 
-  // Helper function to fit text within max width by adjusting font size
-  function getFitFontSize(text, baseFontSize, maxWidth, font) {
+  // Helper function to fit text within max width by adjusting font size.
+  // Press Start 2P è monospace ~1em wide. Su Firefox mobile capita che il
+  // canvas usi il font fallback (sans-serif, molto più stretto) per misurare
+  // ma poi renda con il vero font caricato dopo → il testo trabocca.
+  // Difesa: prendi il massimo tra measureText e una stima geometrica a ~1em.
+  function getFitFontSize(text, baseFontSize, maxWidth, minFontSize) {
+    if (!minFontSize) {
+      minFontSize = Math.max(5, Math.round(baseFontSize * 0.4));
+    }
     let fontSize = baseFontSize;
-    let minFontSize = Math.max(5, Math.round(baseFontSize * 0.4));
 
-    ctx.font = `${fontSize}px 'Press Start 2P'`;
-    let textWidth = ctx.measureText(text).width;
+    const widthAt = (sz) => {
+      ctx.font = `${sz}px "Press Start 2P", monospace`;
+      // Press Start 2P ha advance width = 1em per carattere; uso 1.02 per
+      // includere eventuale spacing del font ed evitare overflow su Firefox mobile,
+      // dove measureText può restituire valori del font fallback (più stretto).
+      return Math.max(
+        ctx.measureText(text).width,
+        text.length * sz * 1.02,
+      );
+    };
 
-    // Reduce font size until text fits
+    let textWidth = widthAt(fontSize);
+
     while (textWidth > maxWidth && fontSize > minFontSize) {
       fontSize = Math.max(minFontSize, Math.round(fontSize * 0.9));
-      ctx.font = `${fontSize}px 'Press Start 2P'`;
-      textWidth = ctx.measureText(text).width;
+      textWidth = widthAt(fontSize);
     }
 
     return fontSize;
@@ -714,9 +828,7 @@ function initGame(canvas) {
     const gameOverSize = Math.round(
       clamp(Math.min(height * 0.12, width * 0.08), 28, 42),
     );
-    const restartSize = Math.round(
-      clamp(Math.min(height * 0.04, width * 0.025), 12, 20),
-    );
+    const restartSize = subtitleSize; // stessa dimensione del sottotitolo
 
     // Disegna background fisso esteso oltre i bordi orizzontali mantenendo proporzioni
     if (
@@ -748,41 +860,59 @@ function initGame(canvas) {
       ctx.drawImage(imgNuvola, n.x, n.y, n.width, n.height);
     });
 
-    // TITOLO CON OUTLINE
+    // TITOLO + SOTTOTITOLO (entrambi su un'unica riga)
     if (!gameStarted && orientationOk) {
+      const isLandscapeMobile = isMobileDevice && orientationOk;
+
       const title = "IL MATRIMONIO DI ELENA E CLAUDIO";
-      const maxTitleWidth = width * 0.88; // 88% della larghezza disponibile
-      let finalTitleSize = getFitFontSize(title, titleSize, maxTitleWidth);
+      const maxTitleWidth = width * 0.92;
+
+      // Su mobile landscape parto grande e lascio che getFitFontSize riduca
+      // fino a far entrare il titolo in larghezza (così è "il più grande possibile").
+      // Su desktop mantengo il cap a 32 come prima.
+      const startSize = isLandscapeMobile
+        ? Math.round(width * 0.08)
+        : 32;
+      const finalTitleSize = getFitFontSize(title, startSize, maxTitleWidth, 10);
       const titleShadowDist = finalTitleSize * 0.1;
-      ctx.font = `${finalTitleSize}px 'Press Start 2P'`;
+
+      ctx.font = `${finalTitleSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
+
+      const titleY = Math.max(
+        20 + finalTitleSize,
+        Math.round((height - groundHeight) * 0.15),
+      );
 
       ctx.fillStyle = "rgb(214, 0, 0)";
-      ctx.fillText(title, width / 2 + 2, 80 + titleShadowDist);
-
+      ctx.fillText(title, width / 2 + 2, titleY + titleShadowDist);
       ctx.fillStyle = "rgb(255, 221, 69)";
-      ctx.fillText(title, width / 2, 80);
+      ctx.fillText(title, width / 2, titleY);
 
-      // SOTTOTITOLO CON OUTLINE (lampeggiante)
+      // SOTTOTITOLO: ~65% del titolo, più distanziato di prima (1.5x vs 1.1x)
       const subtitle = "CLICCA PER AIUTARE CLAUDIO A FUGGIRE!";
-      const maxSubtitleWidth = width * 0.88;
-      let finalSubtitleSize = getFitFontSize(
+      const maxSubtitleWidth = width * 0.92;
+      const targetSubtitleSize = Math.max(10, Math.round(finalTitleSize * 0.65));
+      const finalSubtitleSize = getFitFontSize(
         subtitle,
-        subtitleSize,
+        targetSubtitleSize,
         maxSubtitleWidth,
+        8,
       );
       const subtitleShadowDist = finalSubtitleSize * 0.11;
-      ctx.font = `${finalSubtitleSize}px 'Press Start 2P'`;
+      ctx.font = `${finalSubtitleSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
 
-      // show/hide based on time -> blink every 600ms
+      const subtitleY = titleY + Math.max(28, finalTitleSize * 1.5);
+
+      // blink ogni 800 ms
       const showSubtitle = Math.floor(performance.now() / 800) % 2 === 0;
       if (showSubtitle) {
         ctx.fillStyle = "black";
-        ctx.fillText(subtitle, width / 2 + 7, 120 + subtitleShadowDist);
+        ctx.fillText(subtitle, width / 2 + 2, subtitleY + subtitleShadowDist);
 
         ctx.fillStyle = "white";
-        ctx.fillText(subtitle, width / 2 + 5, 120);
+        ctx.fillText(subtitle, width / 2, subtitleY);
       }
     }
 
@@ -879,20 +1009,25 @@ function initGame(canvas) {
 
     // Disegna punteggio
     if (gameStarted) {
-      ctx.font = `${scoreSize}px 'Press Start 2P'`;
+      ctx.font = `${scoreSize}px "Press Start 2P", monospace`;
+      ctx.textAlign = "right";
+      const scorePadding = Math.max(6, Math.round(width * 0.02)); // padding dal bordo destro
+      const scoreX = width - scorePadding;
+      const scoreY = Math.round(25 + scoreSize);
 
       ctx.fillStyle = "black";
       ctx.fillText(
         `Punti: ${score}`,
-        width - Math.round(10 * scoreSize) + 2,
-        Math.round(40 + scoreSize) + 2,
+        scoreX + 2,
+        scoreY + 2,
       );
       ctx.fillStyle = "white";
       ctx.fillText(
         `Punti: ${score}`,
-        width - Math.round(10 * scoreSize),
-        Math.round(40 + scoreSize),
+        scoreX,
+        scoreY,
       );
+      ctx.textAlign = "start"; // reset
     }
 
     // Se siamo in pausa dovuta a scroll su mobile, mostra overlay persistente
@@ -909,7 +1044,7 @@ function initGame(canvas) {
         pauseSize,
         maxPauseWidth,
       );
-      ctx.font = `${finalPauseSize}px 'Press Start 2P'`;
+      ctx.font = `${finalPauseSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
 
       ctx.fillStyle = "black";
@@ -928,17 +1063,19 @@ function initGame(canvas) {
 
       // GAME OVER con outline
       const gameOverMessage = "GAME OVER";
-      const maxGameOverWidth = width * 0.88;
+      const maxGameOverWidth = Math.max(150, width * 0.85);
       let finalGameOverSize = getFitFontSize(
         gameOverMessage,
         gameOverSize,
         maxGameOverWidth,
+        subtitleSize,
       );
-      ctx.font = `${finalGameOverSize}px 'Press Start 2P'`;
+      ctx.font = `${finalGameOverSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
 
       const x = width / 2;
-      const y = height / 2;
+      const centerY = (height - groundHeight) / 2;
+      const y = Math.max(30 + finalGameOverSize, centerY - finalGameOverSize);
 
       ctx.fillStyle = "rgb(214, 0, 0)";
       ctx.fillText(gameOverMessage, x + 6, y + 6);
@@ -949,35 +1086,39 @@ function initGame(canvas) {
       // messaggio restart con outline
       const restartMessage =
         "Claudio è spacciato! Clicca o premi Invio per riprovare";
-      const maxRestartWidth = width * 0.88;
+      const maxRestartWidth = Math.max(150, width * 0.85);
       let finalRestartSize = getFitFontSize(
         restartMessage,
         restartSize,
         maxRestartWidth,
       );
-      ctx.font = `${finalRestartSize}px 'Press Start 2P'`;
+      ctx.font = `${finalRestartSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
 
+      const restartY = y + Math.max(30, finalGameOverSize * 1.2);
+
       ctx.fillStyle = "black";
-      ctx.fillText(restartMessage, width / 2 + 2, height / 2 + 50 + 2);
+      ctx.fillText(restartMessage, x + 2, restartY + 2);
 
       ctx.fillStyle = "white";
-      ctx.fillText(restartMessage, width / 2 + 2, height / 2 + 50);
+      ctx.fillText(restartMessage, x, restartY);
     }
   }
 
   // RESTART ---------------------------------------------------
   function restartGame() {
-    // riposiziona gli sposi: y su terreno, x vicino alla chiesa su mobile
+    // riposiziona gli sposi: y su terreno, x scalato sulla canvas corrente
+    sposo.x = Math.round(width * 0.3);
     sposo.y = height - groundHeight - sposo.height;
     sposo.vy = 0;
     sposo.frame = 0;
 
+    sposa.x = sposo.x + sposa.offset;
     sposa.y = height - groundHeight - sposa.height;
     sposa.vy = 0;
     sposa.frame = 0;
 
-    chiesaX = 50;
+    chiesaX = Math.round(width * 0.04);
 
     positionCoupleNearChiesa();
 
@@ -995,8 +1136,7 @@ function initGame(canvas) {
 
   // AVVIO -----------------------------------------------------
 
-  let loaded = 0;
-  [
+  const allImages = [
     imgSposo1,
     imgSposo2,
     imgSposo3,
@@ -1006,38 +1146,30 @@ function initGame(canvas) {
     imgChiesa,
     imgNuvola,
     imgBackground,
-  ].forEach((img) => {
+  ];
+
+  // Su Firefox mobile (Fenix) il canvas usa il font fallback finché Press Start 2P
+  // non viene esplicitamente caricato: precarichiamo per evitare il primo render
+  // con metrica sbagliata.
+  const fontReady =
+    document.fonts && document.fonts.load
+      ? Promise.all([
+          document.fonts.load('16px "Press Start 2P"'),
+          document.fonts.load('32px "Press Start 2P"'),
+        ]).catch(() => {})
+      : Promise.resolve();
+
+  let loaded = 0;
+  allImages.forEach((img) => {
     img.onload = () => {
       loaded++;
-      if (loaded === 9) {
-        // Changed from 4 to 8
-        canvas.width = Math.round(canvas.clientWidth);
-        canvas.height = Math.round(canvas.clientHeight);
-        // aggiorna width/height usate nel gioco dopo il resize
-        width = canvas.width;
-        height = canvas.height;
-        updateGroundHeight();
-        // riallinea personaggi al terreno e disegna frame iniziale (ma non partire automaticamente)
-        sposo.y = height - groundHeight - sposo.height + 5;
-        sposa.y = height - groundHeight - sposa.height + 2;
-        // se siamo su mobile, posiziona gli sposi vicino alla chiesa
-        positionCoupleNearChiesa();
-        draw(); // Changed from update() to draw()
-        // avvia il loop di start per aggiornare il lampeggio finché non si clicca
-        if (!startLoopActive) startLoop();
+      if (loaded === allImages.length) {
+        fontReady.then(() => {
+          resizeCanvas();
+          draw();
+          if (!startLoopActive) startLoop();
+        });
       }
     };
-  });
-
-  // aggiorna dimensioni canvas e groundHeight al resize della finestra
-  window.addEventListener("resize", () => {
-    canvas.width = Math.round(canvas.clientWidth);
-    canvas.height = Math.round(canvas.clientHeight);
-    width = canvas.width;
-    height = canvas.height;
-    updateGroundHeight();
-    sposo.y = height - groundHeight - sposo.height;
-    sposa.y = height - groundHeight - sposa.height;
-    draw();
   });
 }
