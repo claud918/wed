@@ -119,7 +119,10 @@ function initGame(canvas) {
   overlayImg.style.position = "absolute";
   overlayImg.style.zIndex = 9999;
   overlayImg.style.pointerEvents = "none";
-  overlayImg.style.display = "none";
+  // Manteniamo sempre `display: block`: nascondiamo solo via opacity, così la GIF
+  // continua ad animarsi e su Safari iOS non resta congelata sul primo frame.
+  overlayImg.style.display = "block";
+  overlayImg.style.opacity = "0";
   // ensure parent can position absolute children
   const parent = canvas.parentElement || document.body;
   if (getComputedStyle(parent).position === "static")
@@ -131,7 +134,8 @@ function initGame(canvas) {
   overlayCaption.style.position = "absolute";
   overlayCaption.style.zIndex = 10000;
   overlayCaption.style.pointerEvents = "none";
-  overlayCaption.style.display = "none";
+  overlayCaption.style.display = "block";
+  overlayCaption.style.opacity = "0";
   overlayCaption.style.color = "white";
   overlayCaption.style.fontFamily = "'Press Start 2P', Arial, sans-serif";
   overlayCaption.style.fontSize = "12px";
@@ -145,7 +149,7 @@ function initGame(canvas) {
   parent.appendChild(overlayCaption);
 
   function updateOverlayPosition() {
-    if (!overlayImg || overlayImg.style.display === "none") return;
+    if (!overlayImg || overlayImg.style.opacity === "0") return;
     const rect = canvas.getBoundingClientRect();
     const maxW = Math.round(rect.width * 0.42);
     const maxH = Math.round(rect.height * 0.35);
@@ -307,10 +311,11 @@ function initGame(canvas) {
         sposa.y = Math.max(30, height - 60);
       }
 
-      // nascondi overlay se presenti
+      // nascondi overlay se presenti (usiamo opacity invece di display:none per
+      // non bloccare l'animazione della GIF su Safari iOS)
       try {
-        overlayImg.style.display = "none";
-        overlayCaption.style.display = "none";
+        overlayImg.style.opacity = "0";
+        overlayCaption.style.opacity = "0";
       } catch (e) {}
 
       draw();
@@ -908,7 +913,43 @@ function initGame(canvas) {
   // ogni 400 ms per simulare un'animazione "premuto/rilasciato".
   // Dimensionato in base alla LARGHEZZA del canvas (più grande su PC che su mobile),
   // poi ridotto se non entra nello spazio verticale disponibile sopra lo sposo.
-  function drawPlayButton(cx, factorOverride) {
+  // Calcola la Y del bordo superiore VISIBILE del pulsante play (escludendo la
+  // cornice trasparente del PNG). Replica la logica di drawPlayButton così da
+  // poter posizionare il subtitle a metà fra titolo e pulsante.
+  function getPlayButtonVisibleTopY(factorOverride, downShiftRatioOverride) {
+    if (!imgPlay1.naturalWidth || !imgPlay1.naturalHeight) {
+      return height - groundHeight;
+    }
+    const aspect1 = imgPlay1.naturalWidth / imgPlay1.naturalHeight;
+    const isLandscapeMobile = isMobileDevice && orientationOk;
+    const factor =
+      typeof factorOverride === "number"
+        ? factorOverride
+        : isLandscapeMobile
+          ? 0.9
+          : 0.8;
+    const downShiftRatio =
+      typeof downShiftRatioOverride === "number"
+        ? downShiftRatioOverride
+        : 0.05;
+    const bottomLimit = height - groundHeight;
+    let btnH = Math.round(bottomLimit * factor);
+    let btnW = Math.round(btnH * aspect1);
+    const maxW = width * 0.98;
+    if (btnW > maxW) {
+      btnW = Math.round(maxW);
+      btnH = Math.round(btnW / aspect1);
+    }
+    const downShift = Math.round(btnH * downShiftRatio);
+    const bbBottom = bottomLimit + downShift;
+    const bbTop = bbBottom - btnH;
+    if (playOpaqueBBoxRatios) {
+      return bbTop + playOpaqueBBoxRatios.yMinR * btnH;
+    }
+    return bbTop;
+  }
+
+  function drawPlayButton(cx, factorOverride, downShiftRatioOverride) {
     if (!imgPlay1.complete || !imgPlay2.complete) return;
     const p1W = imgPlay1.naturalWidth;
     const p1H = imgPlay1.naturalHeight;
@@ -937,7 +978,11 @@ function initGame(canvas) {
     const left = Math.round(cx - btnW / 2);
     // Shift verso il basso: il bbox si estende sotto la linea del terreno
     // così la parte visibile del pulsante appare più in basso (vicino al ground).
-    const downShift = Math.round(btnH * 0.05);
+    const downShiftRatio =
+      typeof downShiftRatioOverride === "number"
+        ? downShiftRatioOverride
+        : 0.05;
+    const downShift = Math.round(btnH * downShiftRatio);
     const bottom = bottomLimit + downShift;
     const top = bottom - btnH;
 
@@ -986,10 +1031,12 @@ function initGame(canvas) {
     pendingSubtitle = null;
     pendingTitle = null;
 
-    // hide DOM overlay by default; will be shown when needed
+    // hide DOM overlay by default; will be shown when needed.
+    // Usiamo opacity (e position fuori dal flusso via z-index/pointer-events già set)
+    // invece di display:none, così Safari iOS non blocca i frame della GIF.
     try {
-      overlayImg.style.display = "none";
-      overlayCaption.style.display = "none";
+      overlayImg.style.opacity = "0";
+      overlayCaption.style.opacity = "0";
     } catch (e) {}
 
     // font sizing responsive - considera sia l'altezza che la larghezza per mobile landscape
@@ -1015,11 +1062,27 @@ function initGame(canvas) {
       width * 0.92,
       10,
     );
-    const finalSubtitleSizeShared = getFitFontSize(
-      "CLICCA PLAY PER AIUTARE CLAUDIO A FUGGIRE!",
-      Math.round(
-        clamp(Math.min(height * 0.04, width * 0.025), 12, 30),
-      ),
+    // Il subtitle deve sempre essere largo ~65% del titolo (misurato sul canvas).
+    // Calcoliamo la dimensione del font del subtitle in modo che, al netto della
+    // monospaziatura di Press Start 2P, la sua larghezza renderizzata sia ~65%
+    // di quella del titolo al suo finalTitleSizeShared.
+    const titleText = "IL MATRIMONIO DI ELENA E CLAUDIO";
+    const subtitleText = "CLICCA PLAY PER AIUTARE CLAUDIO A FUGGIRE!";
+    ctx.save();
+    ctx.font = `${finalTitleSizeShared}px "Press Start 2P", monospace`;
+    const titleMeasuredW = ctx.measureText(titleText).width;
+    const subtitleAtTitleSize = ctx.measureText(subtitleText).width;
+    ctx.restore();
+    const targetSubtitleRatio = 0.75;
+    const targetSubtitleW = titleMeasuredW * targetSubtitleRatio;
+    let finalSubtitleSizeShared = Math.max(
+      8,
+      Math.round((targetSubtitleW / subtitleAtTitleSize) * finalTitleSizeShared),
+    );
+    // Safety: comunque non superare il 92% della larghezza del canvas.
+    finalSubtitleSizeShared = getFitFontSize(
+      subtitleText,
+      finalSubtitleSizeShared,
       width * 0.92,
       8,
     );
@@ -1118,7 +1181,7 @@ function initGame(canvas) {
 
       const subtitle = "CLICCA PLAY PER AIUTARE CLAUDIO A FUGGIRE!";
       const subtitleShadowDist = finalSubtitleSize * 0.11;
-      const subtitleY = titleEndY + Math.max(28, finalTitleSize * 1.0);
+      const subtitleY = titleEndY + Math.max(40, finalTitleSize * 1.5);
       pendingSubtitle = {
         text: subtitle,
         y: subtitleY,
@@ -1165,7 +1228,9 @@ function initGame(canvas) {
       if (rotateReady) {
         try {
           overlayImg.style.display = "block";
+          overlayImg.style.opacity = "1";
           overlayCaption.style.display = "block";
+          overlayCaption.style.opacity = "1";
           updateOverlayPosition();
         } catch (e) {}
         return; // non disegnare il resto
@@ -1303,8 +1368,11 @@ function initGame(canvas) {
 
       const x = width / 2;
 
-      // Pulsante: STESSA dimensione/posizione dello start screen (factor di default).
-      drawPlayButton(width / 2);
+      // Pulsante: stessa dimensione dello start; su mobile lo spostiamo un po'
+      // più in basso (downShift maggiore) per dargli più respiro dal restart text.
+      const gameOverDownShift =
+        isMobileDevice && orientationOk ? 0.18 : 0.05;
+      drawPlayButton(width / 2, undefined, gameOverDownShift);
 
       // GAME OVER: leggermente più grande del titolo dello start screen.
       const gameOverMessage = "GAME OVER";
@@ -1328,7 +1396,14 @@ function initGame(canvas) {
       const finalRestartSize = finalSubtitleSizeShared;
       const restartShadow = finalRestartSize * 0.11;
       ctx.font = `${finalRestartSize}px "Press Start 2P", monospace`;
-      const restartY = goY + Math.max(28, finalGameOverSize * 1.0);
+      // Restart equidistante fra GAME OVER e bordo superiore visibile del pulsante.
+      const playTopYGameOver = getPlayButtonVisibleTopY(
+        undefined,
+        gameOverDownShift,
+      );
+      const minRestartGap = Math.max(40, finalGameOverSize * 1.0);
+      const naiveRestartY = (goY + playTopYGameOver) / 2;
+      const restartY = Math.max(goY + minRestartGap, Math.round(naiveRestartY));
 
       ctx.fillStyle = "black";
       ctx.fillText(restartMessage, x + 2, restartY + restartShadow);
