@@ -201,7 +201,10 @@ canvas.game-canvas {
   width: 100%;
   height: auto;
   aspect-ratio: 3 / 1;
-  background: linear-gradient(#7bd3ff, #c8faff);
+  /* L'ultimo stop verde combacia con il terreno: in caso di sub-pixel gap tra
+     la griglia interna del canvas e la sua dimensione CSS, nessuna riga chiara
+     traspare al confine inferiore. */
+  background: linear-gradient(#7bd3ff 0%, #c8faff 92%, #3ea043 100%);
   image-rendering: pixelated;
   margin: 0;
   border: none;

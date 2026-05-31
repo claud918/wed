@@ -49,6 +49,59 @@ function initGame(canvas) {
   const imgBackground = new Image();
   imgBackground.src = "img/background5.png";
 
+  // Pulsante play (due frame alternati per effetto "premuto")
+  const imgPlay1 = new Image();
+  imgPlay1.src = "img/play.png";
+
+  const imgPlay2 = new Image();
+  imgPlay2.src = "img/play2.png";
+
+  // Bounding box dei pixel opachi del frame "rilasciato" del pulsante play,
+  // espresso come rapporti [0..1] rispetto alla dimensione naturale.
+  // Serve a stringere la hitbox così che cliccare sulla cornice trasparente
+  // non venga interpretato come click sul pulsante.
+  let playOpaqueBBoxRatios = null;
+  function computePlayOpaqueBBox() {
+    if (!imgPlay1.naturalWidth || !imgPlay1.naturalHeight) return;
+    try {
+      const w = imgPlay1.naturalWidth;
+      const h = imgPlay1.naturalHeight;
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const cctx = c.getContext("2d");
+      cctx.drawImage(imgPlay1, 0, 0);
+      const data = cctx.getImageData(0, 0, w, h).data;
+      let xMin = w;
+      let yMin = h;
+      let xMax = -1;
+      let yMax = -1;
+      const threshold = 20;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const a = data[(y * w + x) * 4 + 3];
+          if (a > threshold) {
+            if (x < xMin) xMin = x;
+            if (x > xMax) xMax = x;
+            if (y < yMin) yMin = y;
+            if (y > yMax) yMax = y;
+          }
+        }
+      }
+      if (xMax < 0) return;
+      playOpaqueBBoxRatios = {
+        xMinR: xMin / w,
+        yMinR: yMin / h,
+        xMaxR: (xMax + 1) / w,
+        yMaxR: (yMax + 1) / h,
+      };
+    } catch (e) {
+      playOpaqueBBoxRatios = null;
+    }
+  }
+  if (imgPlay1.complete) computePlayOpaqueBBox();
+  imgPlay1.addEventListener("load", computePlayOpaqueBBox);
+
   // optional rotate GIF (user-provided)
   const imgRotate = new Image();
   imgRotate.src = "img/rotate2.gif";
@@ -184,6 +237,9 @@ function initGame(canvas) {
   // Posizione orizzontale della chiesa (scorre con il mondo)
   let chiesaX = 50;
   let chiesaSpeed = 3;
+  // Bounding box del pulsante play, aggiornata a ogni draw quando visibile.
+  // Usata per restringere il click di avvio/restart al solo pulsante.
+  let playButtonBBox = null;
   // Collision tuning: keep gameplay fair vs visible sprite.
   const OBSTACLE_HITBOX_SCALE = 0.46;
   const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.38;
@@ -202,6 +258,7 @@ function initGame(canvas) {
   // evita che la logica di update riparta automaticamente dopo la rotazione
   let preventAutoResume = false;
   let startLoopActive = false; // (se non presente già)
+  let gameOverLoopActive = false;
   let updateLoopActive = false;
   let rafId = null;
   let lastUpdateTime = performance.now();
@@ -438,54 +495,84 @@ function initGame(canvas) {
     }
   });
 
-  // ----- MOUSE (click per salto + restart) -----
-  canvas.addEventListener("mousedown", () => {
+  // Hit-test: il punto (canvasX, canvasY) è dentro il pulsante play?
+  function isInsidePlayButton(canvasX, canvasY) {
+    if (!playButtonBBox) return false;
+    const b = playButtonBBox;
+    return (
+      canvasX >= b.x &&
+      canvasX <= b.x + b.w &&
+      canvasY >= b.y &&
+      canvasY <= b.y + b.h
+    );
+  }
+
+  // Coordinate del click/tap in CSS pixels rispetto al canvas
+  function canvasCoords(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  // ----- MOUSE (click per salto + start/restart) -----
+  canvas.addEventListener("mousedown", (e) => {
+    const { x: cx, y: cy } = canvasCoords(e.clientX, e.clientY);
+
     if (!gameStarted) {
-      // su mobile, non partire in portrait
       if (!orientationOk) return;
-      // l'utente avvia il gioco: permetti il resume e parti
+      // Start solo se il click è sul pulsante play
+      if (!isInsidePlayButton(cx, cy)) return;
       preventAutoResume = false;
       gameStarted = true;
       startUpdate();
       return;
     }
 
-    if (gameOver) restartGame();
-    else startJump();
+    if (gameOver) {
+      // Restart solo se il click è sul pulsante play
+      if (isInsidePlayButton(cx, cy)) restartGame();
+      return;
+    }
+
+    // Gioco in corso: click ovunque = salto
+    startJump();
   });
 
   canvas.addEventListener("mouseup", () => {
     endJump();
   });
 
-  // ----- TOUCH (tap per salto + restart) -----
+  // ----- TOUCH (tap per salto + start/restart) -----
   // Permetti il tap solo sopra il livello del terreno. Dal terreno in giù permetti lo scroll.
   canvas.addEventListener("touchstart", (e) => {
-    // determina la posizione del primo touch relativo alla canvas
     const t = e.touches && e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const touchY = t ? t.clientY - rect.top : 0;
-    const groundTop = height - groundHeight; // y del bordo superiore del terreno nella canvas
+    if (!t) return;
+    const { x: cx, y: cy } = canvasCoords(t.clientX, t.clientY);
+    const groundTop = height - groundHeight;
 
-    // Se il tocco è sopra il terreno (touchY < groundTop), gestiscilo come tap di gioco
-    if (t && touchY < groundTop) {
-      e.preventDefault();
-      lastTouchHandled = true;
-
-      if (!gameStarted) {
-        if (!orientationOk) return;
-        preventAutoResume = false;
-        gameStarted = true;
-        startUpdate();
-        return;
-      }
-
-      if (gameOver) restartGame();
-      else startJump();
-    } else {
-      // tocco sul terreno o sotto: non impedire lo scroll, lascia che il browser gestisca
+    // Tap sotto il terreno: lascia scrollare la pagina (non gestire)
+    if (cy >= groundTop) {
       lastTouchHandled = false;
+      return;
     }
+
+    e.preventDefault();
+    lastTouchHandled = true;
+
+    if (!gameStarted) {
+      if (!orientationOk) return;
+      if (!isInsidePlayButton(cx, cy)) return;
+      preventAutoResume = false;
+      gameStarted = true;
+      startUpdate();
+      return;
+    }
+
+    if (gameOver) {
+      if (isInsidePlayButton(cx, cy)) restartGame();
+      return;
+    }
+
+    startJump();
   });
 
   canvas.addEventListener("touchend", (e) => {
@@ -560,6 +647,11 @@ function initGame(canvas) {
   function update(now) {
     if (gameOver) {
       updateLoopActive = false;
+      // Avvia il loop dedicato al game over per animare il pulsante play
+      if (!gameOverLoopActive) {
+        gameOverLoopActive = true;
+        gameOverLoop();
+      }
       return;
     }
 
@@ -769,6 +861,18 @@ function initGame(canvas) {
     requestAnimationFrame(startLoop);
   }
 
+  // Loop di game over: ridisegna per animare il pulsante play finché l'utente
+  // non clicca su Restart.
+  function gameOverLoop() {
+    if (!gameOver) {
+      gameOverLoopActive = false;
+      return;
+    }
+    gameOverLoopActive = true;
+    draw();
+    requestAnimationFrame(gameOverLoop);
+  }
+
   // DRAW ------------------------------------------------------
 
   // Helper function to fit text within max width by adjusting font size.
@@ -800,8 +904,87 @@ function initGame(canvas) {
     return fontSize;
   }
 
+  // Disegna il pulsante play con TOP in (cx, topY), alternando i 2 frame
+  // ogni 400 ms per simulare un'animazione "premuto/rilasciato".
+  // Dimensionato in base alla LARGHEZZA del canvas (più grande su PC che su mobile),
+  // poi ridotto se non entra nello spazio verticale disponibile sopra lo sposo.
+  function drawPlayButton(cx, factorOverride) {
+    if (!imgPlay1.complete || !imgPlay2.complete) return;
+    const p1W = imgPlay1.naturalWidth;
+    const p1H = imgPlay1.naturalHeight;
+    if (!p1W || !p1H) return;
+
+    const aspect1 = p1W / p1H;
+
+    // Dimensione SOLO dal canvas. Override possibile (es. nel game over).
+    const isLandscapeMobile = isMobileDevice && orientationOk;
+    const factor =
+      typeof factorOverride === "number"
+        ? factorOverride
+        : isLandscapeMobile
+          ? 0.9
+          : 0.8;
+    const bottomLimit = height - groundHeight;
+    let btnH = Math.round(bottomLimit * factor);
+    let btnW = Math.round(btnH * aspect1);
+
+    const maxW = width * 0.98;
+    if (btnW > maxW) {
+      btnW = Math.round(maxW);
+      btnH = Math.round(btnW / aspect1);
+    }
+
+    const left = Math.round(cx - btnW / 2);
+    // Shift verso il basso: il bbox si estende sotto la linea del terreno
+    // così la parte visibile del pulsante appare più in basso (vicino al ground).
+    const downShift = Math.round(btnH * 0.05);
+    const bottom = bottomLimit + downShift;
+    const top = bottom - btnH;
+
+    // Hit-box: solo l'area effettivamente opaca del frame "rilasciato"
+    // (esclude la cornice trasparente intorno all'immagine).
+    if (playOpaqueBBoxRatios) {
+      const r = playOpaqueBBoxRatios;
+      playButtonBBox = {
+        x: left + r.xMinR * btnW,
+        y: top + r.yMinR * btnH,
+        w: (r.xMaxR - r.xMinR) * btnW,
+        h: (r.yMaxR - r.yMinR) * btnH,
+      };
+    } else {
+      playButtonBBox = { x: left, y: top, w: btnW, h: btnH };
+    }
+
+    const frame = Math.floor(performance.now() / 400) % 2;
+    if (frame === 0) {
+      ctx.drawImage(imgPlay1, left, top, btnW, btnH);
+    } else {
+      // Offset Y minore (~3% di btnH) per simulare la pressione.
+      const pressOffset = Math.max(2, Math.round(btnH * 0.03));
+      const p2W = imgPlay2.naturalWidth || p1W;
+      const p2H = imgPlay2.naturalHeight || p1H;
+      const p2RenderH = Math.round((btnW * p2H) / p2W);
+      ctx.drawImage(
+        imgPlay2,
+        left,
+        bottom + pressOffset - p2RenderH,
+        btnW,
+        p2RenderH,
+      );
+    }
+  }
+
+  // Memorizza i dati di disegno della start screen, da renderizzare DOPO il
+  // pulsante (così il pulsante grande non li copre).
+  let pendingPlayTopY = null;
+  let pendingSubtitle = null;
+  let pendingTitle = null;
+
   function draw() {
     ctx.clearRect(0, 0, width, height);
+    pendingPlayTopY = null;
+    pendingSubtitle = null;
+    pendingTitle = null;
 
     // hide DOM overlay by default; will be shown when needed
     try {
@@ -815,16 +998,34 @@ function initGame(canvas) {
     );
     const titleShadowDistance = titleSize * 0.1;
     const subtitleSize = Math.round(
-      clamp(Math.min(height * 0.04, width * 0.025), 12, 18),
+      clamp(Math.min(height * 0.04, width * 0.025), 12, 30),
     );
     const subtitleShadowDistance = subtitleSize * 0.11;
     const scoreSize = Math.round(
       clamp(Math.min(height * 0.025, width * 0.02), 10, 16),
     );
-    const gameOverSize = Math.round(
-      clamp(Math.min(height * 0.12, width * 0.08), 28, 42),
+    // Calcolo dimensioni titolo/sottotitolo basato sui testi della start screen.
+    // Le STESSE dimensioni vengono usate per "GAME OVER" e per il messaggio di
+    // restart, così le due schermate hanno coppie di testi identici per misura.
+    const isLandscapeMobile = isMobileDevice && orientationOk;
+    const titleStartSize = isLandscapeMobile ? Math.round(width * 0.08) : 50;
+    const finalTitleSizeShared = getFitFontSize(
+      "IL MATRIMONIO DI ELENA E CLAUDIO",
+      titleStartSize,
+      width * 0.92,
+      10,
     );
-    const restartSize = subtitleSize; // stessa dimensione del sottotitolo
+    const finalSubtitleSizeShared = getFitFontSize(
+      "CLICCA PLAY PER AIUTARE CLAUDIO A FUGGIRE!",
+      Math.round(
+        clamp(Math.min(height * 0.04, width * 0.025), 12, 30),
+      ),
+      width * 0.92,
+      8,
+    );
+    // gameOverSize / restartSize ora derivano dai valori condivisi
+    const gameOverSize = finalTitleSizeShared;
+    const restartSize = finalSubtitleSizeShared;
 
     // Disegna nuvole PRIMA del background, così le nuvole basse sono coperte
     // dalle sagome del paese (passano "dietro" all'immagine).
@@ -892,66 +1093,40 @@ function initGame(canvas) {
       ctx.restore();
     }
 
-    // TITOLO + SOTTOTITOLO (entrambi su un'unica riga)
+    // TITOLO + SOTTOTITOLO (start screen)
     if (!gameStarted && orientationOk) {
-      const isLandscapeMobile = isMobileDevice && orientationOk;
-
-      const title = "IL MATRIMONIO DI ELENA E CLAUDIO";
-      const maxTitleWidth = width * 0.92;
-
-      // Su mobile landscape parto grande e lascio che getFitFontSize riduca
-      // fino a far entrare il titolo in larghezza (così è "il più grande possibile").
-      // Su desktop mantengo il cap a 32 come prima.
-      const startSize = isLandscapeMobile ? Math.round(width * 0.08) : 32;
-      const finalTitleSize = getFitFontSize(
-        title,
-        startSize,
-        maxTitleWidth,
-        10,
-      );
+      const titleLines = ["IL MATRIMONIO DI ELENA E CLAUDIO"];
+      const finalTitleSize = finalTitleSizeShared;
+      const finalSubtitleSize = finalSubtitleSizeShared;
       const titleShadowDist = finalTitleSize * 0.1;
-
-      ctx.font = `${finalTitleSize}px "Press Start 2P", monospace`;
-      ctx.textAlign = "center";
+      const lineGap = finalTitleSize * 0.25;
 
       const titleY = Math.max(
         20 + finalTitleSize,
         Math.round((height - groundHeight) * 0.15),
       );
 
-      ctx.fillStyle = "rgb(214, 0, 0)";
-      ctx.fillText(title, width / 2 + 2, titleY + titleShadowDist);
-      ctx.fillStyle = "rgb(255, 221, 69)";
-      ctx.fillText(title, width / 2, titleY);
+      pendingTitle = {
+        lines: titleLines,
+        y: titleY,
+        size: finalTitleSize,
+        shadowDist: titleShadowDist,
+        lineGap: lineGap,
+      };
 
-      // SOTTOTITOLO: ~65% del titolo, più distanziato di prima (1.5x vs 1.1x)
-      const subtitle = "CLICCA PER AIUTARE CLAUDIO A FUGGIRE!";
-      const maxSubtitleWidth = width * 0.92;
-      const targetSubtitleSize = Math.max(
-        10,
-        Math.round(finalTitleSize * 0.65),
-      );
-      const finalSubtitleSize = getFitFontSize(
-        subtitle,
-        targetSubtitleSize,
-        maxSubtitleWidth,
-        8,
-      );
+      const titleEndY = titleY; // single line
+
+      const subtitle = "CLICCA PLAY PER AIUTARE CLAUDIO A FUGGIRE!";
       const subtitleShadowDist = finalSubtitleSize * 0.11;
-      ctx.font = `${finalSubtitleSize}px "Press Start 2P", monospace`;
-      ctx.textAlign = "center";
+      const subtitleY = titleEndY + Math.max(28, finalTitleSize * 1.0);
+      pendingSubtitle = {
+        text: subtitle,
+        y: subtitleY,
+        size: finalSubtitleSize,
+        shadowDist: subtitleShadowDist,
+      };
 
-      const subtitleY = titleY + Math.max(28, finalTitleSize * 1.5);
-
-      // blink ogni 800 ms
-      const showSubtitle = Math.floor(performance.now() / 800) % 2 === 0;
-      if (showSubtitle) {
-        ctx.fillStyle = "black";
-        ctx.fillText(subtitle, width / 2 + 2, subtitleY + subtitleShadowDist);
-
-        ctx.fillStyle = "white";
-        ctx.fillText(subtitle, width / 2, subtitleY);
-      }
+      pendingPlayTopY = titleEndY + Math.max(16, finalTitleSize * 0.5);
     }
 
     // Terreno
@@ -1040,6 +1215,41 @@ function initGame(canvas) {
       frameSequenceSposo[sposo.currentFrame % frameSequenceSposo.length];
     ctx.drawImage(frameImgSposo, sposo.x, sposo.y, sposo.width, sposo.height);
 
+    // Pulsante play della start screen: disegnato dopo lo sposo per stare sopra
+    if (pendingPlayTopY !== null) {
+      drawPlayButton(width / 2);
+      pendingPlayTopY = null;
+    }
+    // Titolo in overlay sopra il pulsante
+    if (pendingTitle) {
+      const pt = pendingTitle;
+      ctx.font = `${pt.size}px "Press Start 2P", monospace`;
+      ctx.textAlign = "center";
+      for (let i = 0; i < pt.lines.length; i++) {
+        const line = pt.lines[i];
+        const lineY = pt.y + i * (pt.size + pt.lineGap);
+        ctx.fillStyle = "rgb(214, 0, 0)";
+        ctx.fillText(line, width / 2 + 2, lineY + pt.shadowDist);
+        ctx.fillStyle = "rgb(255, 221, 69)";
+        ctx.fillText(line, width / 2, lineY);
+      }
+      pendingTitle = null;
+    }
+    // Subtitle in overlay sopra il pulsante (lampeggiante)
+    if (pendingSubtitle) {
+      const ps = pendingSubtitle;
+      ctx.font = `${ps.size}px "Press Start 2P", monospace`;
+      ctx.textAlign = "center";
+      const show = Math.floor(performance.now() / 800) % 2 === 0;
+      if (show) {
+        ctx.fillStyle = "black";
+        ctx.fillText(ps.text, width / 2 + 2, ps.y + ps.shadowDist);
+        ctx.fillStyle = "white";
+        ctx.fillText(ps.text, width / 2, ps.y);
+      }
+      pendingSubtitle = null;
+    }
+
     // Disegna ostacoli
     ostacoli.forEach((o) => {
       ctx.drawImage(imgOstacolo, o.x, o.y, o.width, o.height);
@@ -1087,49 +1297,41 @@ function initGame(canvas) {
     }
 
     if (gameOver) {
-      // overlay
+      // overlay scuro
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, width, height - groundHeight);
 
-      // GAME OVER con outline
+      const x = width / 2;
+
+      // Pulsante: STESSA dimensione/posizione dello start screen (factor di default).
+      drawPlayButton(width / 2);
+
+      // GAME OVER: leggermente più grande del titolo dello start screen.
       const gameOverMessage = "GAME OVER";
-      const maxGameOverWidth = Math.max(150, width * 0.85);
-      let finalGameOverSize = getFitFontSize(
-        gameOverMessage,
-        gameOverSize,
-        maxGameOverWidth,
-        subtitleSize,
-      );
+      const finalGameOverSize = Math.round(finalTitleSizeShared * 1.25);
+      const gameOverShadow = finalGameOverSize * 0.1;
       ctx.font = `${finalGameOverSize}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
-
-      const x = width / 2;
-      const centerY = (height - groundHeight) / 2;
-      const y = Math.max(30 + finalGameOverSize, centerY - finalGameOverSize);
+      const goY = Math.max(
+        20 + finalGameOverSize,
+        Math.round((height - groundHeight) * 0.32),
+      );
 
       ctx.fillStyle = "rgb(214, 0, 0)";
-      ctx.fillText(gameOverMessage, x + 6, y + 6);
-
+      ctx.fillText(gameOverMessage, x + 2, goY + gameOverShadow);
       ctx.fillStyle = "rgb(255, 221, 69)";
-      ctx.fillText(gameOverMessage, x, y);
+      ctx.fillText(gameOverMessage, x, goY);
 
-      // messaggio restart con outline
+      // Messaggio restart: STESSA dimensione/posizione del subtitle.
       const restartMessage =
-        "Claudio è spacciato! Clicca o premi Invio per riprovare";
-      const maxRestartWidth = Math.max(150, width * 0.85);
-      let finalRestartSize = getFitFontSize(
-        restartMessage,
-        restartSize,
-        maxRestartWidth,
-      );
+        "CLAUDIO E' SPACCIATO! CLICCA SU PLAY PER RIPROVARE!";
+      const finalRestartSize = finalSubtitleSizeShared;
+      const restartShadow = finalRestartSize * 0.11;
       ctx.font = `${finalRestartSize}px "Press Start 2P", monospace`;
-      ctx.textAlign = "center";
-
-      const restartY = y + Math.max(30, finalGameOverSize * 1.2);
+      const restartY = goY + Math.max(28, finalGameOverSize * 1.0);
 
       ctx.fillStyle = "black";
-      ctx.fillText(restartMessage, x + 2, restartY + 2);
-
+      ctx.fillText(restartMessage, x + 2, restartY + restartShadow);
       ctx.fillStyle = "white";
       ctx.fillText(restartMessage, x, restartY);
     }
@@ -1176,6 +1378,8 @@ function initGame(canvas) {
     imgChiesa,
     imgNuvola,
     imgBackground,
+    imgPlay1,
+    imgPlay2,
   ];
 
   // Su Firefox mobile (Fenix) il canvas usa il font fallback finché Press Start 2P
