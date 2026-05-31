@@ -8,6 +8,36 @@
     />
     <title>Il Matrimonio di Elena e Claudio</title>
 
+    <meta
+      name="description"
+      content="Domenica 11 Ottobre 2026: Elena e Claudio si sposano. Qui trovi tutte le info su cerimonia, ricevimento, parcheggio e lista nozze."
+    />
+    <meta name="theme-color" content="#079609" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ilmatrimoniodielenaeclaudio.it/" />
+    <meta property="og:title" content="Il Matrimonio di Elena e Claudio" />
+    <meta
+      property="og:description"
+      content="Domenica 11 Ottobre 2026 — Tutte le info per la cerimonia, il ricevimento e il viaggio di nozze."
+    />
+    <meta
+      property="og:image"
+      content="https://ilmatrimoniodielenaeclaudio.it/img/sposa-2.png"
+    />
+    <meta property="og:locale" content="it_IT" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Il Matrimonio di Elena e Claudio" />
+    <meta
+      name="twitter:description"
+      content="Domenica 11 Ottobre 2026 — Tutte le info per la cerimonia, il ricevimento e il viaggio di nozze."
+    />
+    <meta
+      name="twitter:image"
+      content="https://ilmatrimoniodielenaeclaudio.it/img/sposa-2.png"
+    />
+
     <script src="vendor/vue.global.prod.js"></script>
     <link rel="stylesheet" href="style.css" />
     <script data-goatcounter="https://matrimonioelenaclaudio.goatcounter.com/count"
@@ -23,36 +53,66 @@
   </head>
 
   <body>
-    <div id="app">
+    <noscript>
+      <div
+        style="
+          padding: 1.5rem;
+          background: #fff;
+          color: #111;
+          font-family: sans-serif;
+          text-align: center;
+          border-bottom: 4px solid #079609;
+        "
+      >
+        <h1 style="margin: 0 0 0.5rem">Elena e Claudio — 11 Ottobre 2026</h1>
+        <p>
+          Per la versione interattiva del sito è necessario abilitare JavaScript
+          nel browser.
+        </p>
+        <p>
+          <strong>Cerimonia:</strong> Chiesa di San Sisto, ore 11:30 <br />
+          Per info dettagliate, contattateci direttamente.
+        </p>
+      </div>
+    </noscript>
+    <main id="app">
       <header>
         <minigame></minigame>
-        <h2 class="page-title-mobile">IL MATRIMONIO DI</h2>
+        <p class="page-title-mobile page-title-mobile--small">
+          IL MATRIMONIO DI
+        </p>
         <h1 class="page-title-mobile">ELENA E CLAUDIO</h1>
       </header>
 
       <section class="reveal">
-        <h1 class="ceremony-date">
+        <h2 class="ceremony-date">
           <span class="ceremony-date__day">{{ dataCerimoniaGiorno }}</span>
           <span class="ceremony-date__full">{{ dataCerimoniaData }}</span>
-        </h1>
+        </h2>
         <br />
 
-        <div class="countdown" v-if="!matrimonioPassato">
+        <div
+          class="countdown"
+          v-if="!matrimonioPassato"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label="Tempo mancante al matrimonio"
+        >
           <div class="countdown-unit">
             <span class="countdown-number">{{ countdown.giorni }}</span>
             <span class="countdown-label">giorni</span>
           </div>
-          <div class="countdown-sep">:</div>
+          <div class="countdown-sep" aria-hidden="true">:</div>
           <div class="countdown-unit">
             <span class="countdown-number">{{ countdown.ore }}</span>
             <span class="countdown-label">ore</span>
           </div>
-          <div class="countdown-sep">:</div>
+          <div class="countdown-sep" aria-hidden="true">:</div>
           <div class="countdown-unit">
             <span class="countdown-number">{{ countdown.minuti }}</span>
             <span class="countdown-label">min</span>
           </div>
-          <div class="countdown-sep">:</div>
+          <div class="countdown-sep" aria-hidden="true">:</div>
           <div class="countdown-unit">
             <span class="countdown-number">{{ countdown.secondi }}</span>
             <span class="countdown-label">sec</span>
@@ -72,6 +132,10 @@
           src="img/chiesa1b.png"
           alt="Chiesa di San Sisto (pixel art)"
           class="pixel-chiesa"
+          width="433"
+          height="577"
+          loading="lazy"
+          decoding="async"
         />
         <a :href="linkMappaParcheggio"
           >Clicca qui per avere info sul parcheggio</a
@@ -90,6 +154,10 @@
           src="img/valle-di-badia.png"
           alt="Valle di Badia (pixel art)"
           class="pixel-valle"
+          width="1843"
+          height="1228"
+          loading="lazy"
+          decoding="async"
         />
         <br />
       </section>
@@ -180,7 +248,7 @@
           />
         </p>
       </section>
-    </div>
+    </main>
 
     <script src="minigame.js" defer></script>
     <script src="app.js" defer></script>
