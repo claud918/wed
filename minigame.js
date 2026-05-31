@@ -312,8 +312,7 @@ function initGame(canvas) {
   // Cache in memoria: fonte di verità per qualifiesForLeaderboard/getHighScore.
   // Inizializzata dal localStorage (immediato), poi sovrascritta dal server.
   let leaderboardCache = loadLocalLeaderboard();
-  let highScore =
-    leaderboardCache.length > 0 ? leaderboardCache[0].score : 0;
+  let highScore = leaderboardCache.length > 0 ? leaderboardCache[0].score : 0;
 
   function getHighScore() {
     return leaderboardCache.length > 0 ? leaderboardCache[0].score : 0;
@@ -372,8 +371,7 @@ function initGame(canvas) {
 
   function cycleLetter(delta) {
     const idx = NAME_ALPHABET.indexOf(nameLetters[nameIndex]);
-    const next =
-      (idx + delta + NAME_ALPHABET.length) % NAME_ALPHABET.length;
+    const next = (idx + delta + NAME_ALPHABET.length) % NAME_ALPHABET.length;
     nameLetters[nameIndex] = NAME_ALPHABET[next];
   }
 
@@ -543,7 +541,7 @@ function initGame(canvas) {
   function updateGroundHeight() {
     let percentage = 0.09; // default per portrait e iOS
     if (isMobileDevice && orientationOk) {
-      percentage = 0.20; // mobile landscape: ground più sottile, più cielo visibile
+      percentage = 0.2; // mobile landscape: ground più sottile, più cielo visibile
       groundHeight = Math.max(40, Math.round(height * percentage));
     } else {
       groundHeight = Math.max(35, Math.round(height * percentage));
@@ -662,11 +660,7 @@ function initGame(canvas) {
   document.addEventListener("keydown", (e) => {
     // Vista classifica aperta: qualsiasi tasto principale la chiude.
     if (leaderboardViewActive) {
-      if (
-        e.code === "Escape" ||
-        e.code === "Enter" ||
-        e.code === "Space"
-      ) {
+      if (e.code === "Escape" || e.code === "Enter" || e.code === "Space") {
         e.preventDefault();
         closeLeaderboardView();
       }
@@ -1373,10 +1367,7 @@ function initGame(canvas) {
     );
     const titleShadow = titleSize * 0.1;
     const titleText = "NUOVO RECORD!";
-    const titleY = Math.max(
-      20 + titleSize,
-      Math.round(usableH * 0.14),
-    );
+    const titleY = Math.max(20 + titleSize, Math.round(usableH * 0.14));
     ctx.font = `${titleSize}px "Press Start 2P", monospace`;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgb(214, 0, 0)";
@@ -1448,12 +1439,7 @@ function initGame(canvas) {
         w: arrowSize * 2,
         h: arrowSize,
       };
-      drawArrowTriangle(
-        cellCenterX,
-        upRect.y + arrowSize / 2,
-        arrowSize,
-        "up",
-      );
+      drawArrowTriangle(cellCenterX, upRect.y + arrowSize / 2, arrowSize, "up");
 
       // riquadro lettera selezionata
       if (i === nameIndex) {
@@ -1462,12 +1448,7 @@ function initGame(canvas) {
         ctx.fillRect(letterRect.x, letterRect.y, letterRect.w, letterRect.h);
         ctx.strokeStyle = "rgb(255, 221, 69)";
         ctx.lineWidth = Math.max(2, Math.round(letterSize * 0.08));
-        ctx.strokeRect(
-          letterRect.x,
-          letterRect.y,
-          letterRect.w,
-          letterRect.h,
-        );
+        ctx.strokeRect(letterRect.x, letterRect.y, letterRect.w, letterRect.h);
         ctx.restore();
       }
 
@@ -1552,7 +1533,10 @@ function initGame(canvas) {
     const centerX = width / 2;
     const playBtnDownShift =
       gameOver && isMobileDevice && orientationOk ? 0.18 : 0.05;
-    const playVisibleTop = getPlayButtonVisibleTopY(undefined, playBtnDownShift);
+    const playVisibleTop = getPlayButtonVisibleTopY(
+      undefined,
+      playBtnDownShift,
+    );
     let playVisibleBottom;
     if (imgPlay1.naturalWidth && imgPlay1.naturalHeight) {
       const aspect1 = imgPlay1.naturalWidth / imgPlay1.naturalHeight;
@@ -1615,10 +1599,7 @@ function initGame(canvas) {
       clamp(Math.min(usableH * 0.1, width * 0.04), 14, 36),
     );
     const titleShadow = titleSize * 0.1;
-    const titleY = Math.max(
-      20 + titleSize,
-      Math.round(usableH * 0.12),
-    );
+    const titleY = Math.max(20 + titleSize, Math.round(usableH * 0.12));
     ctx.font = `${titleSize}px "Press Start 2P", monospace`;
     ctx.textAlign = "center";
     ctx.fillStyle = "rgb(214, 0, 0)";
@@ -1667,9 +1648,7 @@ function initGame(canvas) {
       const rowSlots = MAX_LEADERBOARD_ENTRIES; // riserva sempre spazio per 10
       const rowH = listH / rowSlots;
       const rowFontByH = Math.round(rowH * 0.62);
-      const rowFontByW = Math.round(
-        width * (isMobileDevice ? 0.038 : 0.028),
-      );
+      const rowFontByW = Math.round(width * (isMobileDevice ? 0.038 : 0.028));
       const rowFontSize = clamp(
         Math.min(rowFontByH, rowFontByW),
         isMobileDevice ? 12 : 8,
@@ -1780,7 +1759,9 @@ function initGame(canvas) {
     const targetSubtitleW = titleMeasuredW * targetSubtitleRatio;
     let finalSubtitleSizeShared = Math.max(
       8,
-      Math.round((targetSubtitleW / subtitleAtTitleSize) * finalTitleSizeShared),
+      Math.round(
+        (targetSubtitleW / subtitleAtTitleSize) * finalTitleSizeShared,
+      ),
     );
     // Safety: comunque non superare il 92% della larghezza del canvas.
     finalSubtitleSizeShared = getFitFontSize(
@@ -2089,8 +2070,7 @@ function initGame(canvas) {
 
       // Pulsante: stessa dimensione dello start; su mobile lo spostiamo un po'
       // più in basso (downShift maggiore) per dargli più respiro dal restart text.
-      const gameOverDownShift =
-        isMobileDevice && orientationOk ? 0.18 : 0.05;
+      const gameOverDownShift = isMobileDevice && orientationOk ? 0.18 : 0.05;
       drawPlayButton(width / 2, undefined, gameOverDownShift);
 
       // GAME OVER: leggermente più grande del titolo dello start screen.
