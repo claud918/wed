@@ -268,6 +268,178 @@ function initGame(canvas) {
   let lastUpdateTime = performance.now();
   let pausedByScroll = false;
 
+  // CLASSIFICA ------------------------------------------------
+  // URL della Web App Google Apps Script (vedi leaderboard.gs).
+  // Lascia vuoto per usare solo localStorage (classifica per singolo browser).
+  const LEADERBOARD_URL =
+    "https://script.google.com/macros/s/AKfycby_HvpULGQYLIXJCjyOJ89Lx3KIjRTIXFtloZE1CZXkx8Zl9KWaUs3q-it4B_lyv-sf/exec";
+
+  const LEADERBOARD_KEY = "minigame_leaderboard_v1";
+  const MAX_LEADERBOARD_ENTRIES = 10;
+  const NAME_LENGTH = 3;
+  const NAME_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  function sanitizeBoard(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter(
+        (e) =>
+          e &&
+          typeof e.name === "string" &&
+          typeof e.score === "number" &&
+          isFinite(e.score),
+      )
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_LEADERBOARD_ENTRIES);
+  }
+
+  function loadLocalLeaderboard() {
+    try {
+      const raw = localStorage.getItem(LEADERBOARD_KEY);
+      if (!raw) return [];
+      return sanitizeBoard(JSON.parse(raw));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveLocalLeaderboard(board) {
+    try {
+      localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board));
+    } catch (e) {}
+  }
+
+  // Cache in memoria: fonte di verità per qualifiesForLeaderboard/getHighScore.
+  // Inizializzata dal localStorage (immediato), poi sovrascritta dal server.
+  let leaderboardCache = loadLocalLeaderboard();
+  let highScore =
+    leaderboardCache.length > 0 ? leaderboardCache[0].score : 0;
+
+  function getHighScore() {
+    return leaderboardCache.length > 0 ? leaderboardCache[0].score : 0;
+  }
+
+  function qualifiesForLeaderboard(s) {
+    if (s <= 0) return false;
+    if (leaderboardCache.length < MAX_LEADERBOARD_ENTRIES) return true;
+    return s > leaderboardCache[leaderboardCache.length - 1].score;
+  }
+
+  function applyBoardUpdate(board) {
+    leaderboardCache = sanitizeBoard(board);
+    saveLocalLeaderboard(leaderboardCache);
+    highScore = getHighScore();
+  }
+
+  function fetchLeaderboard() {
+    if (!LEADERBOARD_URL) return Promise.resolve(leaderboardCache);
+    return fetch(LEADERBOARD_URL, { method: "GET" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) applyBoardUpdate(data);
+        return leaderboardCache;
+      })
+      .catch(() => leaderboardCache);
+  }
+
+  function submitScoreRemote(name, s) {
+    // Aggiorna subito la cache locale per UX immediata; il server poi
+    // ritorna la classifica autorevole e la sovrascrive.
+    const merged = leaderboardCache.slice();
+    merged.push({ name, score: s });
+    applyBoardUpdate(merged);
+
+    if (!LEADERBOARD_URL) return Promise.resolve(leaderboardCache);
+    return fetch(LEADERBOARD_URL, {
+      method: "POST",
+      // text/plain evita il CORS preflight di Apps Script.
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({ name, score: s }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) applyBoardUpdate(data);
+        return leaderboardCache;
+      })
+      .catch(() => leaderboardCache);
+  }
+
+  // INSERIMENTO NOME (3 lettere maiuscole) ---------------------
+  let nameEntryActive = false;
+  let nameLetters = ["A", "A", "A"];
+  let nameIndex = 0;
+  let nameEntryHit = null; // bounding box dei comandi, aggiornata ad ogni draw
+
+  function cycleLetter(delta) {
+    const idx = NAME_ALPHABET.indexOf(nameLetters[nameIndex]);
+    const next =
+      (idx + delta + NAME_ALPHABET.length) % NAME_ALPHABET.length;
+    nameLetters[nameIndex] = NAME_ALPHABET[next];
+  }
+
+  function submitName() {
+    if (!nameEntryActive) return;
+    submitScoreRemote(nameLetters.join(""), score);
+    nameEntryActive = false;
+  }
+
+  function skipNameEntry() {
+    nameEntryActive = false;
+  }
+
+  function pointInRect(x, y, r) {
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  }
+
+  function handleNameEntryClick(cx, cy) {
+    if (!nameEntryHit) return;
+    const h = nameEntryHit;
+    if (pointInRect(cx, cy, h.ok)) {
+      submitName();
+      return;
+    }
+    if (pointInRect(cx, cy, h.skip)) {
+      skipNameEntry();
+      return;
+    }
+    for (const slot of h.slots) {
+      if (pointInRect(cx, cy, slot.up)) {
+        nameIndex = slot.index;
+        cycleLetter(1);
+        return;
+      }
+      if (pointInRect(cx, cy, slot.down)) {
+        nameIndex = slot.index;
+        cycleLetter(-1);
+        return;
+      }
+      if (pointInRect(cx, cy, slot.letter)) {
+        nameIndex = slot.index;
+        return;
+      }
+    }
+  }
+
+  // VISTA CLASSIFICA (top 10) ----------------------------------
+  let leaderboardViewActive = false;
+  let leaderboardBtnHit = null; // hitbox del pulsante "CLASSIFICA"
+  let leaderboardCloseHit = null; // hitbox del pulsante "CHIUDI"
+
+  function openLeaderboardView() {
+    leaderboardViewActive = true;
+    fetchLeaderboard(); // refresh in background
+  }
+
+  function closeLeaderboardView() {
+    leaderboardViewActive = false;
+  }
+
+  // Il pulsante e la vista sono interattivi solo quando il gioco non è in
+  // corso (start screen / game over) e non siamo in inserimento nome.
+  function isLeaderboardBtnVisible() {
+    return !nameEntryActive && (!gameStarted || gameOver);
+  }
+
   function checkOrientation() {
     if (!isMobileDevice) {
       lastOrientationOk = orientationOk = true;
@@ -295,6 +467,10 @@ function initGame(canvas) {
       ostacoli = [];
       nuvole = [];
       jumpPressed = false;
+      nameEntryActive = false;
+      nameLetters = ["A", "A", "A"];
+      nameIndex = 0;
+      leaderboardViewActive = false;
 
       // impedisci che l'update riprenda automaticamente fino al click dell'utente
       preventAutoResume = true;
@@ -484,6 +660,65 @@ function initGame(canvas) {
 
   // ----- KEYBOARD -----
   document.addEventListener("keydown", (e) => {
+    // Vista classifica aperta: qualsiasi tasto principale la chiude.
+    if (leaderboardViewActive) {
+      if (
+        e.code === "Escape" ||
+        e.code === "Enter" ||
+        e.code === "Space"
+      ) {
+        e.preventDefault();
+        closeLeaderboardView();
+      }
+      return;
+    }
+
+    // Schermata di inserimento nome: intercetta gli input prima del gameplay.
+    if (nameEntryActive) {
+      if (e.code === "ArrowUp") {
+        e.preventDefault();
+        cycleLetter(1);
+        return;
+      }
+      if (e.code === "ArrowDown") {
+        e.preventDefault();
+        cycleLetter(-1);
+        return;
+      }
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        nameIndex = Math.max(0, nameIndex - 1);
+        return;
+      }
+      if (e.code === "ArrowRight") {
+        e.preventDefault();
+        nameIndex = Math.min(NAME_LENGTH - 1, nameIndex + 1);
+        return;
+      }
+      if (e.code === "Enter" || e.code === "Space") {
+        e.preventDefault();
+        if (nameIndex < NAME_LENGTH - 1) {
+          nameIndex++;
+        } else {
+          submitName();
+        }
+        return;
+      }
+      if (e.code === "Escape") {
+        e.preventDefault();
+        skipNameEntry();
+        return;
+      }
+      // Digitazione diretta di una lettera A-Z.
+      if (/^Key[A-Z]$/.test(e.code)) {
+        e.preventDefault();
+        nameLetters[nameIndex] = e.code.substring(3);
+        if (nameIndex < NAME_LENGTH - 1) nameIndex++;
+        return;
+      }
+      return;
+    }
+
     if (e.code === "Space" || e.code === "ArrowUp") {
       e.preventDefault();
       startJump();
@@ -495,6 +730,7 @@ function initGame(canvas) {
   });
 
   document.addEventListener("keyup", (e) => {
+    if (nameEntryActive) return;
     if (e.code === "Space" || e.code === "ArrowUp") {
       endJump();
     }
@@ -522,12 +758,33 @@ function initGame(canvas) {
   canvas.addEventListener("mousedown", (e) => {
     const { x: cx, y: cy } = canvasCoords(e.clientX, e.clientY);
 
+    if (leaderboardViewActive) {
+      // tap ovunque chiude la vista (anche fuori dal pulsante CHIUDI)
+      closeLeaderboardView();
+      return;
+    }
+
+    if (
+      isLeaderboardBtnVisible() &&
+      leaderboardBtnHit &&
+      pointInRect(cx, cy, leaderboardBtnHit)
+    ) {
+      openLeaderboardView();
+      return;
+    }
+
+    if (nameEntryActive) {
+      handleNameEntryClick(cx, cy);
+      return;
+    }
+
     if (!gameStarted) {
       if (!orientationOk) return;
       // Start solo se il click è sul pulsante play
       if (!isInsidePlayButton(cx, cy)) return;
       preventAutoResume = false;
       gameStarted = true;
+      fetchLeaderboard();
       startUpdate();
       return;
     }
@@ -543,6 +800,7 @@ function initGame(canvas) {
   });
 
   canvas.addEventListener("mouseup", () => {
+    if (nameEntryActive || leaderboardViewActive) return;
     endJump();
   });
 
@@ -553,6 +811,35 @@ function initGame(canvas) {
     if (!t) return;
     const { x: cx, y: cy } = canvasCoords(t.clientX, t.clientY);
     const groundTop = height - groundHeight;
+
+    // Vista classifica aperta: tap ovunque la chiude.
+    if (leaderboardViewActive) {
+      e.preventDefault();
+      lastTouchHandled = true;
+      closeLeaderboardView();
+      return;
+    }
+
+    // Pulsante CLASSIFICA (apre la vista).
+    if (
+      isLeaderboardBtnVisible() &&
+      leaderboardBtnHit &&
+      pointInRect(cx, cy, leaderboardBtnHit)
+    ) {
+      e.preventDefault();
+      lastTouchHandled = true;
+      openLeaderboardView();
+      return;
+    }
+
+    // Durante l'inserimento del nome i comandi possono trovarsi anche oltre
+    // la linea del terreno: gestiamo i tap su tutta l'area del canvas.
+    if (nameEntryActive) {
+      e.preventDefault();
+      lastTouchHandled = true;
+      handleNameEntryClick(cx, cy);
+      return;
+    }
 
     // Tap sotto il terreno: lascia scrollare la pagina (non gestire)
     if (cy >= groundTop) {
@@ -568,6 +855,7 @@ function initGame(canvas) {
       if (!isInsidePlayButton(cx, cy)) return;
       preventAutoResume = false;
       gameStarted = true;
+      fetchLeaderboard();
       startUpdate();
       return;
     }
@@ -760,6 +1048,14 @@ function initGame(canvas) {
         gameOver = true;
       }
     });
+
+    // Se il giocatore è appena entrato in game over e rientra nei top 10,
+    // attiva la schermata di inserimento nome PRIMA del game over.
+    if (gameOver && qualifiesForLeaderboard(score)) {
+      nameEntryActive = true;
+      nameLetters = ["A", "A", "A"];
+      nameIndex = 0;
+    }
 
     // Sposa salta automaticamente se un ostacolo è davanti
     ostacoli.forEach((o) => {
@@ -1017,6 +1313,413 @@ function initGame(canvas) {
         p2RenderH,
       );
     }
+  }
+
+  // Disegna una freccia triangolare per i comandi di inserimento nome.
+  function drawArrowTriangle(cx, cy, size, dir) {
+    ctx.save();
+    ctx.beginPath();
+    if (dir === "up") {
+      ctx.moveTo(cx, cy - size / 2);
+      ctx.lineTo(cx + size / 2, cy + size / 2);
+      ctx.lineTo(cx - size / 2, cy + size / 2);
+    } else {
+      ctx.moveTo(cx, cy + size / 2);
+      ctx.lineTo(cx + size / 2, cy - size / 2);
+      ctx.lineTo(cx - size / 2, cy - size / 2);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "rgb(255, 221, 69)";
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = Math.max(2, Math.round(size * 0.12));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Pulsante stile pixel-art per OK / SKIP nella schermata name entry.
+  function drawNameEntryButton(rect, text, fontSize, accent) {
+    ctx.save();
+    const shadow = Math.max(2, Math.round(fontSize * 0.22));
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(rect.x + shadow, rect.y + shadow, rect.w, rect.h);
+    ctx.fillStyle = accent ? "rgb(255, 221, 69)" : "rgb(214, 0, 0)";
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.12));
+    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.font = `${fontSize}px "Press Start 2P", monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = accent ? "black" : "rgb(255, 221, 69)";
+    ctx.fillText(text, rect.x + rect.w / 2, rect.y + rect.h / 2);
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+  }
+
+  // Schermata di inserimento nome (3 lettere), mostrata prima del game over
+  // se il punteggio rientra nella top 10.
+  function drawNameEntry() {
+    // overlay scuro sopra il terreno
+    ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+    ctx.fillRect(0, 0, width, height - groundHeight);
+
+    const centerX = width / 2;
+    const usableH = height - groundHeight;
+
+    // Titolo "NUOVO RECORD!"
+    const titleSize = Math.round(
+      clamp(Math.min(usableH * 0.11, width * 0.045), 14, 42),
+    );
+    const titleShadow = titleSize * 0.1;
+    const titleText = "NUOVO RECORD!";
+    const titleY = Math.max(
+      20 + titleSize,
+      Math.round(usableH * 0.14),
+    );
+    ctx.font = `${titleSize}px "Press Start 2P", monospace`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgb(214, 0, 0)";
+    ctx.fillText(titleText, centerX + 2, titleY + titleShadow);
+    ctx.fillStyle = "rgb(255, 221, 69)";
+    ctx.fillText(titleText, centerX, titleY);
+
+    // Sottotitolo: punteggio + istruzione
+    const subSize = Math.round(
+      clamp(Math.min(usableH * 0.05, width * 0.025), 10, 22),
+    );
+    const subShadow = subSize * 0.11;
+    const subY = titleY + Math.max(20, Math.round(titleSize * 1.0));
+    ctx.font = `${subSize}px "Press Start 2P", monospace`;
+    const subText = `PUNTI: ${score}`;
+    ctx.fillStyle = "black";
+    ctx.fillText(subText, centerX + 2, subY + subShadow);
+    ctx.fillStyle = "white";
+    ctx.fillText(subText, centerX, subY);
+
+    const hintSize = Math.max(8, Math.round(subSize * 0.7));
+    const hintY = subY + Math.max(16, Math.round(subSize * 1.05));
+    ctx.font = `${hintSize}px "Press Start 2P", monospace`;
+    const hintText = "INSERISCI IL TUO NOME";
+    ctx.fillStyle = "black";
+    ctx.fillText(hintText, centerX + 1, hintY + 1);
+    ctx.fillStyle = "white";
+    ctx.fillText(hintText, centerX, hintY);
+
+    // Calcolo spazio disponibile per lettere + pulsanti
+    const remainingH = usableH - hintY - 16;
+    const letterSize = Math.round(
+      clamp(Math.min(remainingH * 0.22, width * 0.055), 14, 44),
+    );
+    const cellW = Math.round(letterSize * 1.15);
+    const cellGap = Math.round(letterSize * 0.55);
+    const totalLettersW = cellW * NAME_LENGTH + cellGap * (NAME_LENGTH - 1);
+    const lettersStartX = centerX - totalLettersW / 2;
+
+    const arrowSize = Math.round(letterSize * 0.45);
+    const arrowGap = Math.round(letterSize * 0.2);
+
+    // Posiziona la baseline così che la freccia su resti SOTTO la scritta
+    // "INSERISCI IL TUO NOME" con un piccolo margine di sicurezza.
+    const clearanceTop = Math.max(10, Math.round(letterSize * 0.35));
+    const lettersBaselineY =
+      hintY +
+      clearanceTop +
+      arrowSize +
+      arrowGap +
+      Math.round(letterSize * 0.85);
+
+    const slots = [];
+    for (let i = 0; i < NAME_LENGTH; i++) {
+      const cellX = lettersStartX + i * (cellW + cellGap);
+      const cellCenterX = cellX + cellW / 2;
+
+      const letterRect = {
+        x: cellX,
+        y: lettersBaselineY - Math.round(letterSize * 0.85),
+        w: cellW,
+        h: Math.round(letterSize * 1.1),
+      };
+
+      // freccia su (sopra la lettera)
+      const upRect = {
+        x: cellCenterX - arrowSize,
+        y: letterRect.y - arrowGap - arrowSize,
+        w: arrowSize * 2,
+        h: arrowSize,
+      };
+      drawArrowTriangle(
+        cellCenterX,
+        upRect.y + arrowSize / 2,
+        arrowSize,
+        "up",
+      );
+
+      // riquadro lettera selezionata
+      if (i === nameIndex) {
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 221, 69, 0.18)";
+        ctx.fillRect(letterRect.x, letterRect.y, letterRect.w, letterRect.h);
+        ctx.strokeStyle = "rgb(255, 221, 69)";
+        ctx.lineWidth = Math.max(2, Math.round(letterSize * 0.08));
+        ctx.strokeRect(
+          letterRect.x,
+          letterRect.y,
+          letterRect.w,
+          letterRect.h,
+        );
+        ctx.restore();
+      }
+
+      // lettera
+      ctx.font = `${letterSize}px "Press Start 2P", monospace`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "black";
+      ctx.fillText(nameLetters[i], cellCenterX + 2, lettersBaselineY + 2);
+      ctx.fillStyle = i === nameIndex ? "rgb(255, 221, 69)" : "white";
+      ctx.fillText(nameLetters[i], cellCenterX, lettersBaselineY);
+
+      // freccia giù (sotto la lettera)
+      const downRect = {
+        x: cellCenterX - arrowSize,
+        y: letterRect.y + letterRect.h + arrowGap,
+        w: arrowSize * 2,
+        h: arrowSize,
+      };
+      drawArrowTriangle(
+        cellCenterX,
+        downRect.y + arrowSize / 2,
+        arrowSize,
+        "down",
+      );
+
+      slots.push({
+        index: i,
+        up: upRect,
+        down: downRect,
+        letter: letterRect,
+      });
+    }
+
+    // Pulsanti OK e SKIP
+    const downArrowsBottom = slots[0].down.y + slots[0].down.h;
+    const btnSize = Math.max(10, Math.round(subSize * 0.95));
+    const btnPad = Math.round(btnSize * 0.7);
+    ctx.font = `${btnSize}px "Press Start 2P", monospace`;
+    const okText = "OK";
+    const skipText = "SKIP";
+    const okTextW = ctx.measureText(okText).width;
+    const skipTextW = ctx.measureText(skipText).width;
+    const okW = Math.max(Math.round(btnSize * 3.8), okTextW + btnPad * 2);
+    const skipW = Math.max(Math.round(btnSize * 4.6), skipTextW + btnPad * 2);
+    const btnH = Math.round(btnSize * 2.2);
+    const btnGap = Math.max(20, Math.round(width * 0.04));
+    const totalBtnW = okW + skipW + btnGap;
+    const btnStartX = centerX - totalBtnW / 2;
+    const btnYDesired =
+      downArrowsBottom + Math.max(20, Math.round(letterSize * 0.5));
+    const btnY = Math.min(btnYDesired, usableH - btnH - 10);
+
+    const okRect = { x: btnStartX, y: btnY, w: okW, h: btnH };
+    drawNameEntryButton(okRect, okText, btnSize, true);
+
+    const skipRect = {
+      x: btnStartX + okW + btnGap,
+      y: btnY,
+      w: skipW,
+      h: btnH,
+    };
+    drawNameEntryButton(skipRect, skipText, btnSize, false);
+
+    nameEntryHit = { slots, ok: okRect, skip: skipRect };
+  }
+
+  // Piccolo pulsante "CLASSIFICA" visibile su start screen e game over.
+  // Posizionato in alto a sinistra per non coprire il punteggio (in alto a destra).
+  function drawLeaderboardOpenButton() {
+    const fontSize = Math.round(
+      clamp(Math.min(height * 0.028, width * 0.018), 7, 14),
+    );
+    ctx.save();
+    ctx.font = `${fontSize}px "Press Start 2P", monospace`;
+    const label = "CLASSIFICA";
+    const textW = ctx.measureText(label).width;
+    const padX = Math.round(fontSize * 0.7);
+    const padY = Math.round(fontSize * 0.55);
+    const w = Math.round(textW + padX * 2);
+    const h = Math.round(fontSize + padY * 2);
+
+    const centerX = width / 2;
+    const playBtnDownShift =
+      gameOver && isMobileDevice && orientationOk ? 0.18 : 0.05;
+    const playVisibleTop = getPlayButtonVisibleTopY(undefined, playBtnDownShift);
+    let playVisibleBottom;
+    if (imgPlay1.naturalWidth && imgPlay1.naturalHeight) {
+      const aspect1 = imgPlay1.naturalWidth / imgPlay1.naturalHeight;
+      const isLandscapeMobile = isMobileDevice && orientationOk;
+      const factor = isLandscapeMobile ? 0.9 : 0.8;
+      const bottomLimit = height - groundHeight;
+      let btnH = Math.round(bottomLimit * factor);
+      let btnW = Math.round(btnH * aspect1);
+      const maxW = width * 0.98;
+      if (btnW > maxW) {
+        btnW = Math.round(maxW);
+        btnH = Math.round(btnW / aspect1);
+      }
+      const downShift = Math.round(btnH * playBtnDownShift);
+      const bbTop = bottomLimit + downShift - btnH;
+      playVisibleBottom = playOpaqueBBoxRatios
+        ? bbTop + playOpaqueBBoxRatios.yMaxR * btnH
+        : bbTop + btnH;
+    } else {
+      playVisibleBottom = playVisibleTop + Math.round(height * 0.08);
+    }
+
+    const x = Math.round(centerX - w / 2);
+    const leaderboardGap = Math.max(24, Math.round(height * 0.1));
+    const y = Math.min(
+      Math.max(8, Math.round(playVisibleBottom + leaderboardGap)),
+      Math.max(8, Math.round(height - groundHeight - h - 8)),
+    );
+
+    const shadow = Math.max(2, Math.round(fontSize * 0.22));
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(x + shadow, y + shadow, w, h);
+    ctx.fillStyle = "rgb(255, 221, 69)";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.15));
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.fillStyle = "black";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + w / 2, y + h / 2);
+    ctx.textBaseline = "alphabetic";
+    ctx.restore();
+
+    leaderboardBtnHit = { x, y, w, h };
+  }
+
+  // Schermata "CLASSIFICA": overlay con top 10 record.
+  function drawLeaderboardView() {
+    // overlay scuro sopra il terreno
+    ctx.fillStyle = "rgba(0, 0, 0, 0.82)";
+    ctx.fillRect(0, 0, width, height - groundHeight);
+
+    const centerX = width / 2;
+    const usableH = height - groundHeight;
+
+    // Titolo
+    const titleSize = Math.round(
+      clamp(Math.min(usableH * 0.1, width * 0.04), 14, 36),
+    );
+    const titleShadow = titleSize * 0.1;
+    const titleY = Math.max(
+      20 + titleSize,
+      Math.round(usableH * 0.12),
+    );
+    ctx.font = `${titleSize}px "Press Start 2P", monospace`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgb(214, 0, 0)";
+    ctx.fillText("CLASSIFICA", centerX + 2, titleY + titleShadow);
+    ctx.fillStyle = "rgb(255, 221, 69)";
+    ctx.fillText("CLASSIFICA", centerX, titleY);
+
+    // Pulsante CHIUDI in basso
+    const btnFontSize = Math.round(
+      clamp(Math.min(usableH * 0.045, width * 0.022), 9, 18),
+    );
+    ctx.font = `${btnFontSize}px "Press Start 2P", monospace`;
+    const closeText = "CHIUDI";
+    const closeTextW = ctx.measureText(closeText).width;
+    const closePadX = Math.round(btnFontSize * 0.8);
+    const closeW = Math.max(
+      Math.round(btnFontSize * 5),
+      closeTextW + closePadX * 2,
+    );
+    const closeH = Math.round(btnFontSize * 2.2);
+    const closeY = usableH - closeH - 14;
+    const closeX = centerX - closeW / 2;
+
+    // Area lista fra il titolo e il pulsante CHIUDI
+    const listTop = titleY + Math.max(28, Math.round(titleSize * 0.8));
+    const listBottom = closeY - 14;
+    const listH = Math.max(20, listBottom - listTop);
+
+    const board = leaderboardCache;
+    const rows = Math.min(board.length, MAX_LEADERBOARD_ENTRIES);
+
+    if (rows === 0) {
+      const emptyFont = Math.round(
+        clamp(Math.min(usableH * 0.04, width * 0.022), 9, 16),
+      );
+      ctx.font = `${emptyFont}px "Press Start 2P", monospace`;
+      const emptyText = "NESSUN RECORD ANCORA";
+      const ty = (listTop + listBottom) / 2;
+      ctx.fillStyle = "black";
+      ctx.fillText(emptyText, centerX + 1, ty + 1);
+      ctx.fillStyle = "white";
+      ctx.fillText(emptyText, centerX, ty);
+    } else {
+      // Calcolo font row: deve entrare in altezza (10 righe possibili)
+      // e larghezza (max ~70% del canvas).
+      const rowSlots = MAX_LEADERBOARD_ENTRIES; // riserva sempre spazio per 10
+      const rowH = listH / rowSlots;
+      const rowFontByH = Math.round(rowH * 0.62);
+      const rowFontByW = Math.round(
+        width * (isMobileDevice ? 0.038 : 0.028),
+      );
+      const rowFontSize = clamp(
+        Math.min(rowFontByH, rowFontByW),
+        isMobileDevice ? 12 : 8,
+        isMobileDevice ? 24 : 20,
+      );
+      ctx.font = `${rowFontSize}px "Press Start 2P", monospace`;
+
+      const colPaddingX = Math.max(16, Math.round(width * 0.06));
+      const separator = "..........";
+      const rowsData = [];
+      for (let i = 0; i < rows; i++) {
+        const entry = board[i];
+        rowsData.push({
+          rankStr: (i + 1).toString().padStart(2, " ") + ".",
+          text: `${entry.name}${separator}${entry.score}`,
+        });
+      }
+
+      const maxRankW = Math.max(
+        ...rowsData.map((row) => ctx.measureText(row.rankStr).width),
+      );
+      const maxTextW = Math.max(
+        ...rowsData.map((row) => ctx.measureText(row.text).width),
+      );
+      const textSpacing = Math.round(rowFontSize * 0.9);
+      const totalTextW = maxRankW + textSpacing + maxTextW;
+      const leftX = Math.round(centerX - totalTextW / 2);
+
+      for (let i = 0; i < rows; i++) {
+        const entry = board[i];
+        const row = rowsData[i];
+        const yBaseline = listTop + (i + 0.7) * rowH;
+
+        ctx.textAlign = "left";
+        ctx.fillStyle = "black";
+        ctx.fillText(row.rankStr, leftX + 2, yBaseline + 2);
+        ctx.fillStyle = "rgb(255, 221, 69)";
+        ctx.fillText(row.rankStr, leftX, yBaseline);
+
+        const nameX = leftX + maxRankW + textSpacing;
+        ctx.fillStyle = "black";
+        ctx.fillText(row.text, nameX + 2, yBaseline + 2);
+        ctx.fillStyle = "white";
+        ctx.fillText(row.text, nameX, yBaseline);
+      }
+    }
+
+    const closeRect = { x: closeX, y: closeY, w: closeW, h: closeH };
+    drawNameEntryButton(closeRect, closeText, btnFontSize, true);
+    leaderboardCloseHit = closeRect;
   }
 
   // Memorizza i dati di disegno della start screen, da renderizzare DOPO il
@@ -1332,6 +2035,16 @@ function initGame(canvas) {
       ctx.fillText(`Punti: ${score}`, scoreX + 2, scoreY + 2);
       ctx.fillStyle = "white";
       ctx.fillText(`Punti: ${score}`, scoreX, scoreY);
+
+      // Record (high score) sotto il punteggio corrente
+      if (highScore > 0) {
+        const hiY = scoreY + Math.round(scoreSize * 1.5);
+        ctx.fillStyle = "black";
+        ctx.fillText(`Record: ${highScore}`, scoreX + 2, hiY + 2);
+        ctx.fillStyle = "rgb(255, 221, 69)";
+        ctx.fillText(`Record: ${highScore}`, scoreX, hiY);
+      }
+
       ctx.textAlign = "start"; // reset
     }
 
@@ -1362,6 +2075,12 @@ function initGame(canvas) {
     }
 
     if (gameOver) {
+      // Se il punteggio rientra in classifica, mostra prima il name entry.
+      if (nameEntryActive) {
+        drawNameEntry();
+        return;
+      }
+
       // overlay scuro
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, width, height - groundHeight);
@@ -1410,6 +2129,20 @@ function initGame(canvas) {
       ctx.fillStyle = "white";
       ctx.fillText(restartMessage, x, restartY);
     }
+
+    // Pulsante "CLASSIFICA" sopra a tutto (start screen e game over).
+    if (isLeaderboardBtnVisible()) {
+      drawLeaderboardOpenButton();
+    } else {
+      leaderboardBtnHit = null;
+    }
+
+    // Vista classifica come ultimo strato così copre il resto.
+    if (leaderboardViewActive) {
+      drawLeaderboardView();
+    } else {
+      leaderboardCloseHit = null;
+    }
   }
 
   // RESTART ---------------------------------------------------
@@ -1435,6 +2168,14 @@ function initGame(canvas) {
     difficulty = 1; // resetta difficoltà
     gameOver = false;
     jumpPressed = false;
+
+    // reset stato classifica/inserimento nome
+    nameEntryActive = false;
+    nameLetters = ["A", "A", "A"];
+    nameIndex = 0;
+    leaderboardViewActive = false;
+    highScore = getHighScore();
+    fetchLeaderboard();
 
     // riattiva il resume perché questo è un restart intenzionale
     preventAutoResume = false;
@@ -1481,4 +2222,9 @@ function initGame(canvas) {
       }
     };
   });
+
+  // Avvia in background il fetch della classifica remota: alla prima
+  // game over la cache sarà già aggiornata. In caso di fallimento si
+  // resta sul valore di localStorage caricato in cache.
+  fetchLeaderboard();
 }

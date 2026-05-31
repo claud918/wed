@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.mezzamaratonapisa.it)"
+      "WebFetch(domain:www.mezzamaratonapisa.it)",
+      "Bash(node *)"
     ]
   }
 }
