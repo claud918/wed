@@ -218,7 +218,7 @@ body.game-fullscreen canvas.game-canvas {
 /* Fullscreen game mode */
 body.game-fullscreen {
   overflow: hidden !important;
-  height: 100vh;
+  height: 100dvh;
 }
 
 body.game-fullscreen #app > section,
@@ -229,8 +229,8 @@ body.game-fullscreen footer {
 body.game-fullscreen #app > header {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100dvw;
+  height: 100dvh;
   z-index: 9999;
   display: flex;
   align-items: center;
