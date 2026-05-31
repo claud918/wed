@@ -15,7 +15,7 @@ body {
   min-height: 100%;
   position: relative;
   overflow-x: hidden;
-  background-color: #3ea043;
+  background-color: #079609;
   background-attachment: scroll;
   background-repeat: no-repeat;
   background-size: cover;
@@ -66,7 +66,7 @@ h2 {
 p {
   font-family: "Press Start 2P", monospace;
   font-size: 0.8rem;
-  color: #3ea043;
+  color: #079609;
   line-height: 2.1;
   text-shadow: 0.09rem 0.09rem 0 rgba(0, 0, 0, 0.68);
 }
@@ -204,7 +204,7 @@ canvas.game-canvas {
   /* L'ultimo stop verde combacia con il terreno: in caso di sub-pixel gap tra
      la griglia interna del canvas e la sua dimensione CSS, nessuna riga chiara
      traspare al confine inferiore. */
-  background: linear-gradient(#7bd3ff 0%, #c8faff 92%, #3ea043 100%);
+  background: linear-gradient(#7bd3ff 0%, #c8faff 92%, #079609 100%);
   image-rendering: pixelated;
   margin: 0;
   border: none;
@@ -235,7 +235,7 @@ body.game-fullscreen #app > header {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #3ea043;
+  background: #079609;
 }
 
 /* Sections */
@@ -247,7 +247,7 @@ section {
   background: rgb(255, 255, 255);
   border: 4px solid rgb(255, 221, 69);
   box-shadow:
-    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
+    0.4rem 0.4rem 0 rgba(7, 150, 9, 0.8),
     0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
   border-radius: 0;
   position: relative;
@@ -428,7 +428,7 @@ section {
 .countdown-number {
   font-family: "Press Start 2P", monospace;
   font-size: clamp(1.5rem, 3vw, 1.5rem);
-  color: #3ea043;
+  color: #079609;
   text-shadow: 0.09rem 0.09rem 0 rgba(0, 0, 0, 0.6);
   line-height: 1.2;
   display: block;
@@ -437,7 +437,7 @@ section {
 .countdown-label {
   font-family: "Press Start 2P", monospace;
   font-size: clamp(0.35rem, 1vw, 0.5rem);
-  color: #3ea043;
+  color: #079609;
   text-shadow: 0.05rem 0.05rem 0 rgba(0, 0, 0, 0.6);
   margin-top: 0.3rem;
   display: block;
@@ -446,7 +446,7 @@ section {
 .countdown-sep {
   font-family: "Press Start 2P", monospace;
   font-size: clamp(0.9rem, 3vw, 1.5rem);
-  color: #3ea043;
+  color: #079609;
   text-shadow: 0.1rem 0.1rem 0 rgba(0, 0, 0, 0.6);
   line-height: 1.2;
   padding-top: 0;
@@ -624,7 +624,7 @@ footer.reveal.is-visible .footer-icons .footer-char:last-child {
   background: rgb(255, 221, 69);
   border: 4px solid rgb(214, 0, 0);
   box-shadow:
-    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
+    0.4rem 0.4rem 0 rgba(7, 150, 9, 0.8),
     0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
   padding: 1.25rem 1.5rem;
   margin-bottom: 2rem;
@@ -654,7 +654,7 @@ footer.reveal.is-visible .footer-icons .footer-char:last-child {
   background: rgb(255, 255, 255);
   border: 4px solid rgb(255, 221, 69);
   box-shadow:
-    0.4rem 0.4rem 0 rgba(62, 160, 67, 0.8),
+    0.4rem 0.4rem 0 rgba(7, 150, 9, 0.8),
     0.8rem 0.8rem 0 rgba(0, 0, 0, 0.4);
   overflow: hidden;
   padding: 0;
@@ -670,7 +670,7 @@ footer.reveal.is-visible .footer-icons .footer-char:last-child {
 .map-caption {
   font-family: "Press Start 2P", monospace;
   font-size: 0.7rem;
-  color: #3ea043;
+  color: #079609;
   line-height: 2.1;
   text-shadow: 0.09rem 0.09rem 0 rgba(0, 0, 0, 0.68);
 }

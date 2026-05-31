@@ -11,7 +11,7 @@ function initGame(canvas) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     // set body background to the same color as the ground to avoid thin white gaps
-    document.body.style.backgroundColor = "#3ea043";
+    document.body.style.backgroundColor = "#079609";
   } catch (e) {}
 
   let width = canvas.width;
@@ -48,6 +48,34 @@ function initGame(canvas) {
 
   const imgBackground = new Image();
   imgBackground.src = "img/background5.png";
+
+  const imgGrass = new Image();
+  // Larghezza in pixel sorgente di ciascuna "fetta" verticale che ritagliamo
+  // dal PNG dell'erba. Su grass.png (1064x234) → 80px ≈ 13 fette distinte.
+  const GRASS_SRC_SLICE_W = 80;
+  // Playlist di offset X (in pixel sorgente) generata da PRNG seedato: il loop
+  // di rendering scorre questo array per pescare quale fetta disegnare a ogni
+  // posizione. Lunghezza grande così la ripetizione visiva non si nota.
+  let grassSlicePicks = null;
+  function initGrassSlices() {
+    if (!imgGrass.naturalWidth) return;
+    const totalSlices = Math.floor(imgGrass.naturalWidth / GRASS_SRC_SLICE_W);
+    if (totalSlices <= 0) return;
+    const N = 512;
+    let s = 0xdeadbeef >>> 0;
+    const rnd = () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 0x100000000;
+    };
+    const arr = new Array(N);
+    for (let i = 0; i < N; i++) {
+      arr[i] = Math.floor(rnd() * totalSlices) * GRASS_SRC_SLICE_W;
+    }
+    grassSlicePicks = arr;
+  }
+  imgGrass.addEventListener("load", initGrassSlices);
+  imgGrass.src = "img/grass.png";
+  if (imgGrass.complete) initGrassSlices();
 
   // Pulsante play (due frame alternati per effetto "premuto")
   const imgPlay1 = new Image();
@@ -241,12 +269,16 @@ function initGame(canvas) {
   // Posizione orizzontale della chiesa (scorre con il mondo)
   let chiesaX = 50;
   let chiesaSpeed = 3;
+  // Offset accumulato dello scroll dell'erba: cresce nel tempo alla stessa
+  // velocità degli ostacoli; il loop di tiling in draw() usa -grassOffset (mod
+  // larghezza tile) come x iniziale, così il pattern scorre verso sinistra.
+  let grassOffset = 0;
   // Bounding box del pulsante play, aggiornata a ogni draw quando visibile.
   // Usata per restringere il click di avvio/restart al solo pulsante.
   let playButtonBBox = null;
   // Collision tuning: keep gameplay fair vs visible sprite.
-  const OBSTACLE_HITBOX_SCALE = 0.46;
-  const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.38;
+  const OBSTACLE_HITBOX_SCALE = 0.7;
+  const OBSTACLE_HITBOX_Y_OFFSET_SCALE = 0.15;
   const COLLISION_GRACE_PX = 4;
   // valori per regolare la posizione verticale se le immagini hanno padding
   const CHIESA_NUDGE_FACTOR = 0.215; // sposta la chiesa verso il basso di questa frazione dell'altezza finale
@@ -464,6 +496,7 @@ function initGame(canvas) {
       chiesaX = 50;
       ostacoli = [];
       nuvole = [];
+      grassOffset = 0;
       jumpPressed = false;
       nameEntryActive = false;
       nameLetters = ["A", "A", "A"];
@@ -875,9 +908,21 @@ function initGame(canvas) {
   // OSTACOLI --------------------------------------------------
 
   function spawnObstacle() {
-    // ostacoli proporzionali allo sposo (~60%-120% della sua altezza)
-    const baseSize = Math.max(20, Math.round(sposo.height * 0.6));
-    const size = baseSize + Math.random() * baseSize;
+    // ostacoli proporzionali allo sposo: ora che ostacolo.png non ha più il
+    // padding trasparente (il cespuglio riempie tutto il rettangolo), il
+    // fattore deve essere piccolo. Altezza tra ~25% e ~50% dell'altezza dello
+    // sposo. Niente floor fisso in px: sposo.height è già scalato da
+    // applyResponsiveScale() in funzione delle dimensioni del canvas, quindi
+    // un floor in px romperebbe la proporzione sui dispositivi piccoli.
+    const baseH = Math.max(8, Math.round(sposo.height * 0.27));
+    const h = baseH + Math.random() * baseH;
+    // Larghezza derivata dall'aspect ratio nativo dell'immagine, così il
+    // cespuglio non viene deformato.
+    const aspect =
+      imgOstacolo.naturalWidth && imgOstacolo.naturalHeight
+        ? imgOstacolo.naturalWidth / imgOstacolo.naturalHeight
+        : 1;
+    const w = Math.round(h * aspect);
 
     // Se ci sono ostacoli recenti, controlla distanza
     const last = ostacoli[ostacoli.length - 1];
@@ -894,23 +939,24 @@ function initGame(canvas) {
 
     const obstacle = {
       x: width,
-      width: size,
-      height: size,
+      width: w,
+      height: h,
       passed: false,
       hitbox: {},
     };
 
-    const hitboxWidth = Math.max(12, Math.round(size * OBSTACLE_HITBOX_SCALE));
-    const hitboxHeight = Math.max(12, Math.round(size * OBSTACLE_HITBOX_SCALE));
+    const hitboxWidth = Math.max(12, Math.round(w * OBSTACLE_HITBOX_SCALE));
+    const hitboxHeight = Math.max(12, Math.round(h * OBSTACLE_HITBOX_SCALE));
     obstacle.hitbox = {
-      xOffset: Math.round((size - hitboxWidth) / 2),
-      yOffset: Math.round(size * OBSTACLE_HITBOX_Y_OFFSET_SCALE),
+      xOffset: Math.round((w - hitboxWidth) / 2),
+      yOffset: Math.round(h * OBSTACLE_HITBOX_Y_OFFSET_SCALE),
       width: hitboxWidth,
       height: hitboxHeight,
     };
 
-    // appoggia l’ostacolo sul terreno (il bordo inferiore tocca il terreno)
-    obstacle.y = height - groundHeight - obstacle.height / 1.5;
+    // appoggia l'ostacolo sul terreno: il bordo inferiore coincide esattamente
+    // con il top del terreno (nessuna porzione sotto)
+    obstacle.y = height - groundHeight - obstacle.height;
 
     ostacoli.push(obstacle);
   }
@@ -920,7 +966,7 @@ function initGame(canvas) {
 
     const nuvola = {
       x: width,
-      y: Math.random() * (height * 0.3), // SOLO parte alta del cielo
+      y: Math.random() * (height * 0.18), // parte alta del cielo, leggermente più in alto
       width: size,
       height: size * 0.6, // nuvole più schiacciate
       speed: 1 + Math.random() * 1.5,
@@ -1017,6 +1063,9 @@ function initGame(canvas) {
     ostacoli.forEach((o) => {
       o.x -= currentSpeed * delta;
     });
+
+    // Scroll dell'erba alla stessa velocità degli ostacoli
+    grassOffset += currentSpeed * delta;
 
     // Sposta la chiesa verso sinistra
     chiesaX -= chiesaSpeed * delta;
@@ -1877,7 +1926,7 @@ function initGame(canvas) {
     }
 
     // Terreno
-    ctx.fillStyle = "#3ea043";
+    ctx.fillStyle = "#079609";
     ctx.fillRect(0, height - groundHeight, width, groundHeight);
 
     // In mobile + portrait, disegna una linea gialla in basso
@@ -2003,6 +2052,52 @@ function initGame(canvas) {
     ostacoli.forEach((o) => {
       ctx.drawImage(imgOstacolo, o.x, o.y, o.width, o.height);
     });
+
+    // Terreno + erba in primo piano: ridisegnati DOPO ostacoli/sposi/chiesa,
+    // così tutto ciò che sta sul piano "spunta" dal terreno (ostacoli affondano
+    // di ~1/3, fili d'erba davanti ai piedi degli sposi, base della chiesa
+    // coperta). Il fillRect precedente prima del return è ancora necessario
+    // per garantire il colore di fondo in portrait/overlay.
+    ctx.fillStyle = "#079609";
+    ctx.fillRect(0, height - groundHeight, width, groundHeight);
+
+    if (
+      grassSlicePicks &&
+      imgGrass.complete &&
+      imgGrass.naturalWidth &&
+      imgGrass.naturalHeight
+    ) {
+      // Altezza dell'erba proporzionata allo sposo (~15% della sua altezza),
+      // così scala coerentemente con i personaggi su ogni dispositivo
+      // (sposo.height è già responsivo via applyResponsiveScale()).
+      const gH = Math.max(4, Math.round(sposo.height * 0.15));
+      const srcH = imgGrass.naturalHeight;
+      const srcW = GRASS_SRC_SLICE_W;
+      const dstSliceW = Math.max(2, Math.round((srcW * gH) / srcH));
+      const yTop = Math.round(height - groundHeight - gH + 2);
+
+      const offsetInSlices = grassOffset / dstSliceW;
+      const startIdx = Math.floor(offsetInSlices);
+      const subPixel = (offsetInSlices - startIdx) * dstSliceW;
+      const N = grassSlicePicks.length;
+
+      let i = 0;
+      for (let x = -subPixel; x < width; x += dstSliceW, i++) {
+        const pickIdx = (((startIdx + i) % N) + N) % N;
+        const sx = grassSlicePicks[pickIdx];
+        ctx.drawImage(
+          imgGrass,
+          sx,
+          0,
+          srcW,
+          srcH,
+          Math.round(x),
+          yTop,
+          dstSliceW,
+          gH,
+        );
+      }
+    }
 
     // Disegna punteggio
     if (gameStarted) {
