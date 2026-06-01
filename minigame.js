@@ -287,7 +287,6 @@ function initGame(canvas) {
   const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(
     navigator.userAgent,
   );
-  const isAndroid = /Android/i.test(navigator.userAgent);
   let orientationOk = true; // true se il dispositivo è in landscape o non mobile
   let lastOrientationOk = true;
 
@@ -1705,7 +1704,6 @@ function initGame(canvas) {
       );
       ctx.font = `${rowFontSize}px "Press Start 2P", monospace`;
 
-      const colPaddingX = Math.max(16, Math.round(width * 0.06));
       const separator = "..........";
       const rowsData = [];
       for (let i = 0; i < rows; i++) {
@@ -1770,15 +1768,7 @@ function initGame(canvas) {
       overlayCaption.style.opacity = "0";
     } catch (e) {}
 
-    // font sizing responsive - considera sia l'altezza che la larghezza per mobile landscape
-    const titleSize = Math.round(
-      clamp(Math.min(height * 0.08, width * 0.04), 5, 32),
-    );
-    const titleShadowDistance = titleSize * 0.1;
-    const subtitleSize = Math.round(
-      clamp(Math.min(height * 0.04, width * 0.025), 12, 30),
-    );
-    const subtitleShadowDistance = subtitleSize * 0.11;
+    // font sizing responsive per il punteggio in alto a destra
     const scoreSize = Math.round(
       clamp(Math.min(height * 0.025, width * 0.02), 10, 16),
     );

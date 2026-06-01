@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:www.mezzamaratonapisa.it)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(grep -n \"^[[:space:]]*//[[:space:]]*\\\\\\(TODO\\\\|FIXME\\\\|XXX\\\\|REMOVED\\\\|DEPRECATED\\\\|UNUSED\\\\\\)\" minigame.js)",
+      "Bash(grep -nE \"^[[:space:]]*//[[:space:]]*\\(if|const|let|var|function|ctx\\\\.|imgGrass|sposo\\\\.|sposa\\\\.|return\\)\" minigame.js)",
+      "Bash(awk '/^[[:space:]]*\\(let|const|var|function\\)[[:space:]]+[a-zA-Z_]/ { match\\($0, /\\(let|const|var|function\\)[[:space:]]+\\([a-zA-Z_][a-zA-Z0-9_]*\\)/, arr\\); if \\(arr[2]\\) print arr[2]; }' minigame.js)",
+      "Bash(awk '$1 > 1')",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(sed -n '1768,1785p' minigame.js)"
     ]
   }
 }
